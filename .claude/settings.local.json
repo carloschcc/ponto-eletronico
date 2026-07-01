@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ccosta\\\\Downloads\\\\ponto-eletronico\\\\public\\\\upload\\\\foto\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\ccosta\\\\Downloads\\\\ponto-eletronico\\\\resources\\\\views\\\\pontoeletronico\\\\periodo\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ccosta\\\\Downloads\\\\ponto-eletronico\\\\resources\\\\views\\\\pontoeletronico\\\\configuracao\")"
+    ]
+  }
+}
