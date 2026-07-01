@@ -82,6 +82,8 @@ class PontoController extends PontoEletronicoController {
                 
                 Session::put('status.msg_confirm', 'Você está fazendo um registro de entrada sem um registro prévio de saída. Confirma?');
                 Session::put('status.redir_confirm', $url_base.'/registrar');  
+                
+                return redirect(getenv('APP_URL').'/dashboard');
             
             else:
                 
@@ -157,6 +159,8 @@ class PontoController extends PontoEletronicoController {
             
         endif;
         
+        Session::put('status.msg', 'Falha no registro. Por favor, tente novamente.');
+        return redirect(getenv('APP_URL').'/dashboard');
         
     }
     

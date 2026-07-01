@@ -19,14 +19,11 @@ class AutorizacaoMiddleware
     {
         
         $usuario_logado = Session::get('login.ponto.usuario_id');
-        if(!isset($usuario_logado) OR $usuario_logado == ''){
-            
+        if(empty($usuario_logado)){
             $url_base = getenv('APP_URL');
-            
-            echo("<script>window.location.replace(\"$url_base\");</script>");
-            
+            return redirect($url_base);
         }
-        
+
         return $next($request);
     }
 }
