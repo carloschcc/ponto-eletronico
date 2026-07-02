@@ -42,71 +42,7 @@ class PontoController extends PontoEletronicoController {
         
         $area = Request::input('area');
         $hora_registrada = Request::input('hora');
-        $latitude = trim(Request::input('latitude', ''));
-        $longitude = trim(Request::input('longitude', ''));
-        $location_source = trim(Request::input('location_source', ''));
 
-        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
-        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
-        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
-        $raio_cadastrado = (float) Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
-
-        if ($habilitar_localizacao == '1' && ($latitude_cadastrada === '' || $longitude_cadastrada === '')) {
-            Session::put('status.msg', 'A configuração de localização não está completa. Solicite ao administrador.');
-            Session::put('status.error_redirect', $url_base.'/dashboard');
-            return redirect($url_base.'/dashboard');
-        }
-
-        $localizacao_ip = null;
-        if ($habilitar_localizacao == '1') {
-            $localizacao_ip = $this->obterLocalizacaoIp();
-        }
-
-        if ($habilitar_localizacao == '1' && $localizacao_ip) {
-            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
-            if ($distancia_ip > $raio_cadastrado) {
-                Session::put('status.msg', 'Sua localização pela rede (IP) está fora da área permitida.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-        }
-
-        if ($habilitar_localizacao == '1' && ($latitude === '' || $longitude === '')) {
-            if ($localizacao_ip) {
-                $latitude = $localizacao_ip['latitude'];
-                $longitude = $localizacao_ip['longitude'];
-                $location_source = 'ip';
-            } else {
-                Session::put('status.msg', 'É necessário permitir o acesso à localização para registrar ponto.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-        }
-
-        if ($habilitar_localizacao == '1') {
-            if ($localizacao_ip && strtolower($location_source) === 'manual') {
-                Session::put('status.msg', 'Registro manual não é permitido quando a localização por IP está disponível.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-
-            if ($localizacao_ip) {
-                $distancia_ip_coord = $this->calcularDistanciaEmMetros($latitude, $longitude, $localizacao_ip['latitude'], $localizacao_ip['longitude']);
-                if ($distancia_ip_coord > 500) {
-                    Session::put('status.msg', 'A localização enviada difere muito da localização real do IP. Registro negado.');
-                    Session::put('status.error_redirect', $url_base.'/dashboard');
-                    return redirect($url_base.'/dashboard');
-                }
-            }
-
-            $distancia = $this->calcularDistanciaEmMetros($latitude, $longitude, $latitude_cadastrada, $longitude_cadastrada);
-            if ($distancia > $raio_cadastrado) {
-                Session::put('status.msg', 'Você está fora da área permitida para registro de ponto.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-        }
-        
         if($area == 'entrada'):
             
             if(!empty($registro_saida) AND !empty($registro_entrada)):
