@@ -116,7 +116,7 @@ $hora = Date('H:i');
                       </div>
                     </div>
                   </div>
-                  <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Detectar localização automaticamente</button>
+                  <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
                   @if($habilitarLocalizacao == '1' && $latitudeConfigurada && $longitudeConfigurada)
                   <p class="text-muted" style="font-size:12px; margin-top:10px;">
                     Local do ponto configurado: <strong>{{ $latitudeConfigurada }}, {{ $longitudeConfigurada }}</strong> (raio {{ $raioConfigurado }}m).
@@ -272,25 +272,9 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     atualizarBotoes();
 }
 
-function tentarCapturarGPS() {
-    if (!navigator.geolocation) {
-        atualizarStatus('Este navegador não suporta GPS. Tentando IP...', 'alert-danger');
-        obterLocalizacaoPorIP();
-        return;
-    }
-
-    atualizarStatus('Tentando capturar GPS...', 'alert-warning');
-    navigator.geolocation.getCurrentPosition(function(position) {
-        preencherLocalizacao(position.coords.latitude, position.coords.longitude, 'GPS');
-    }, function(error) {
-        console.warn('Erro ao obter geolocalização:', error);
-        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Tentando localização por IP.', 'alert-danger');
-        obterLocalizacaoPorIP();
-    }, {
-        enableHighAccuracy: true,
-        timeout: 20000,
-        maximumAge: 0
-    });
+function tentarCapturarIP() {
+    atualizarStatus('Tentando capturar localização por IP...', 'alert-warning');
+    obterLocalizacaoPorIP();
 }
 
 function obterLocalizacaoPorIP() {
@@ -315,12 +299,12 @@ function obterLocalizacaoPorIP() {
 }
 
 document.getElementById('btn-detect-location').addEventListener('click', function() {
-    tentarCapturarGPS();
+    tentarCapturarIP();
 });
 
 document.getElementById('btn-set-coords').addEventListener('click', function() {
-    if (locationRequired && !locationAttemptFinished && !realLatitude && !realLongitude) {
-        alert('Aguardando tentativa de localização real via GPS/IP. Por favor, aguarde alguns segundos antes de usar coordenadas manuais.');
+    if (locationRequired && !locationAttemptFinished) {
+        alert('Aguardando tentativa de localização real via IP. Por favor, aguarde alguns segundos antes de usar coordenadas manuais.');
         return;
     }
     if (locationRequired && realLatitude && realLongitude && !realLocationValid) {
@@ -381,7 +365,7 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
 
 window.addEventListener('load', function() {
     atualizarBotoes();
-    tentarCapturarGPS();
+    tentarCapturarIP();
     ['form-entrada', 'form-saida'].forEach(function(formId) {
         var form = document.getElementById(formId);
         if (!form) return;

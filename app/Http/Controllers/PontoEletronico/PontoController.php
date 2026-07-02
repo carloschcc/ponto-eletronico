@@ -84,8 +84,8 @@ class PontoController extends PontoEletronicoController {
         }
 
         if ($habilitar_localizacao == '1') {
-            if (strtolower($location_source) === 'manual') {
-                Session::put('status.msg', 'Registro manual não é permitido quando a localização é exigida.');
+            if ($localizacao_ip && strtolower($location_source) === 'manual') {
+                Session::put('status.msg', 'Registro manual não é permitido quando a localização por IP está disponível.');
                 Session::put('status.error_redirect', $url_base.'/dashboard');
                 return redirect($url_base.'/dashboard');
             }
