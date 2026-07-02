@@ -1,5 +1,6 @@
 <?php namespace App\Http\Controllers\PontoEletronico;
 
+use App\Configuracao;
 use App\Http\Controllers\Controller;
 use Request;
 use Session;
@@ -23,10 +24,10 @@ class ConfiguracaoController extends PontoEletronicoController {
         $logo_espelho_existe   = file_exists(public_path('img/logo_espelho_v2.png'));
         $timezone_atual        = date_default_timezone_get();
         $hora_atual            = date('d/m/Y H:i:s');
-        $configuracao_localizacao = getenv('PONTO_LOCALIZACAO_HABILITAR') ?: env('PONTO_LOCALIZACAO_HABILITAR', '0');
-        $localizacao_latitude = getenv('PONTO_LOCALIZACAO_LATITUDE') ?: env('PONTO_LOCALIZACAO_LATITUDE', '');
-        $localizacao_longitude = getenv('PONTO_LOCALIZACAO_LONGITUDE') ?: env('PONTO_LOCALIZACAO_LONGITUDE', '');
-        $localizacao_raio = getenv('PONTO_LOCALIZACAO_RAIO') ?: env('PONTO_LOCALIZACAO_RAIO', '50');
+        $configuracao_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $localizacao_latitude = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $localizacao_longitude = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $localizacao_raio = Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
 
         return view('pontoeletronico/configuracao/index', compact(
             'logo_url', 'logo_espelho_url', 'logo_espelho_existe',

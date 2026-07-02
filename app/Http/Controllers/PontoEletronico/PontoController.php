@@ -2,6 +2,7 @@
 
 
 use Illuminate\Support\Facades\DB;
+use App\Configuracao;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
@@ -44,10 +45,10 @@ class PontoController extends PontoEletronicoController {
         $latitude = trim(Request::input('latitude', ''));
         $longitude = trim(Request::input('longitude', ''));
 
-        $habilitar_localizacao = getenv('PONTO_LOCALIZACAO_HABILITAR') ?: env('PONTO_LOCALIZACAO_HABILITAR', '0');
-        $latitude_cadastrada = getenv('PONTO_LOCALIZACAO_LATITUDE') ?: env('PONTO_LOCALIZACAO_LATITUDE', '');
-        $longitude_cadastrada = getenv('PONTO_LOCALIZACAO_LONGITUDE') ?: env('PONTO_LOCALIZACAO_LONGITUDE', '');
-        $raio_cadastrado = (float) (getenv('PONTO_LOCALIZACAO_RAIO') ?: env('PONTO_LOCALIZACAO_RAIO', '50'));
+        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $raio_cadastrado = (float) Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
 
         if ($habilitar_localizacao == '1' && ($latitude_cadastrada === '' || $longitude_cadastrada === '')) {
             Session::put('status.msg', 'A configuração de localização não está completa. Solicite ao administrador.');
