@@ -316,6 +316,11 @@ document.getElementById('btn-detect-location').addEventListener('click', functio
 });
 
 document.getElementById('btn-set-coords').addEventListener('click', function() {
+    if (locationRequired && !locationAttemptFinished && !realLatitude && !realLongitude) {
+        alert('Aguardando tentativa de localização real via GPS/IP. Por favor, aguarde alguns segundos antes de usar coordenadas manuais.');
+        return;
+    }
+
     var manualLatInput = document.getElementById('manual-latitude');
     var manualLonInput = document.getElementById('manual-longitude');
     var manualLat = manualLatInput.value.trim();
