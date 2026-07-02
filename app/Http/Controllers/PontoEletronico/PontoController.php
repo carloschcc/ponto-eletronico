@@ -84,19 +84,16 @@ class PontoController extends PontoEletronicoController {
         }
 
         if ($habilitar_localizacao == '1') {
+            if (strtolower($location_source) === 'manual') {
+                Session::put('status.msg', 'Registro manual não é permitido quando a localização é exigida.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+
             if ($localizacao_ip) {
                 $distancia_ip_coord = $this->calcularDistanciaEmMetros($latitude, $longitude, $localizacao_ip['latitude'], $localizacao_ip['longitude']);
                 if ($distancia_ip_coord > 500) {
                     Session::put('status.msg', 'A localização enviada difere muito da localização real do IP. Registro negado.');
-                    Session::put('status.error_redirect', $url_base.'/dashboard');
-                    return redirect($url_base.'/dashboard');
-                }
-            }
-
-            if ($location_source === 'manual') {
-                $distancia_manual_admin = $this->calcularDistanciaEmMetros($latitude, $longitude, $latitude_cadastrada, $longitude_cadastrada);
-                if ($distancia_manual_admin > 50) {
-                    Session::put('status.msg', 'As coordenadas manuais devem corresponder ao local configurado pelo administrador.');
                     Session::put('status.error_redirect', $url_base.'/dashboard');
                     return redirect($url_base.'/dashboard');
                 }
