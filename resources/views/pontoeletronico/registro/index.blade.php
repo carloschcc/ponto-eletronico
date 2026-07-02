@@ -69,15 +69,6 @@ $hora = Date('H:i');
 
               <p class="text-muted text-center" style='font-size: 50px;'><?=Date("H:i")?></p>
 
-              <div id="gps-status" class="alert alert-warning" style="margin-bottom: 15px; text-align: left;">
-                <strong><i class="fa fa-location-arrow"></i> GPS:</strong> aguardando autorização...
-              </div>
-              @if(!$isHttps)
-              <div class="alert alert-danger" style="margin-bottom: 15px; text-align: left;">
-                <strong><i class="fa fa-warning"></i> HTTPS necessário:</strong> este acesso está via HTTP/IP. Em muitos navegadores o GPS exige HTTPS ou localhost para funcionar corretamente.
-              </div>
-              @endif
-
               <div class="row">
                   <div class='col-md-6 col-xs-6'>
                       <form method="post" action="registrar" name="form-entrada" id="form-entrada">
@@ -86,7 +77,7 @@ $hora = Date('H:i');
                           <input type="hidden" name="hora" value="<?=$hora?>">
                           <input type="hidden" name="latitude" id="latitude-entrada" value="">
                           <input type="hidden" name="longitude" id="longitude-entrada" value="">
-                          <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;" id="btn-entrada" disabled>
+                          <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
                       </form>
                   </div>
                   <div class='col-md-6 col-xs-6'>
@@ -96,7 +87,7 @@ $hora = Date('H:i');
                           <input type="hidden" name="hora" value="<?=$hora?>">
                           <input type="hidden" name="latitude" id="latitude-saida" value="">
                           <input type="hidden" name="longitude" id="longitude-saida" value="">
-                          <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;" id="btn-saida" disabled>
+                          <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
                       </form>
                   </div>
               </div>
@@ -143,123 +134,5 @@ $hora = Date('H:i');
       <!-- /.row -->
 
     </section>
-
-<script>
-var localizacaoPermitida = false;
-var latitudeAtual = '';
-var longitudeAtual = '';
-var habilitarLocalizacao = '{{ $habilitarLocalizacao }}';
-
-function atualizarStatusGps(mensagem, tipo) {
-    var status = document.getElementById('gps-status');
-    if (!status) {
-        return;
-    }
-    status.className = 'alert alert-' + tipo;
-    status.innerHTML = '<strong><i class="fa fa-location-arrow"></i> GPS:</strong> ' + mensagem;
-}
-
-function habilitarBotoes() {
-    var entrada = document.getElementById('btn-entrada');
-    var saida = document.getElementById('btn-saida');
-    if (entrada) {
-        entrada.disabled = !(habilitarLocalizacao === '1' ? localizacaoPermitida : false);
-    }
-    if (saida) {
-        saida.disabled = !(habilitarLocalizacao === '1' ? localizacaoPermitida : false);
-    }
-}
-
-function preencherLocalizacao() {
-    if (!navigator.geolocation) {
-        atualizarStatusGps('este navegador não suporta GPS.', 'danger');
-        habilitarBotoes();
-        return;
-    }
-
-    if (habilitarLocalizacao !== '1') {
-        atualizarStatusGps('validação de localização desativada.', 'success');
-        habilitarBotoes();
-        return;
-    }
-
-    atualizarStatusGps('solicitando permissão de localização...', 'warning');
-    navigator.geolocation.getCurrentPosition(function(position) {
-        latitudeAtual = position.coords.latitude;
-        longitudeAtual = position.coords.longitude;
-        localizacaoPermitida = true;
-
-        document.getElementById('latitude-entrada').value = latitudeAtual;
-        document.getElementById('longitude-entrada').value = longitudeAtual;
-        document.getElementById('latitude-saida').value = latitudeAtual;
-        document.getElementById('longitude-saida').value = longitudeAtual;
-
-        atualizarStatusGps('GPS autorizado e posição capturada.', 'success');
-        habilitarBotoes();
-    }, function() {
-        localizacaoPermitida = false;
-        document.getElementById('latitude-entrada').value = '';
-        document.getElementById('longitude-entrada').value = '';
-        document.getElementById('latitude-saida').value = '';
-        document.getElementById('longitude-saida').value = '';
-
-        atualizarStatusGps('autorização de GPS negada ou indisponível.', 'danger');
-        habilitarBotoes();
-    }, {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
-    });
-}
-
-function calcularDistanciaEmMetros(lat1, lon1, lat2, lon2) {
-    var earthRadius = 6371000;
-    var dLat = (lat2 - lat1) * Math.PI / 180;
-    var dLon = (lon2 - lon1) * Math.PI / 180;
-    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return earthRadius * c;
-}
-
-function validarAntesEnviar(evento) {
-    if (habilitarLocalizacao !== '1') {
-        return true;
-    }
-
-    if (!localizacaoPermitida || latitudeAtual === '' || longitudeAtual === '') {
-        evento.preventDefault();
-        alert('É necessário permitir o acesso ao GPS para registrar o ponto.');
-        return false;
-    }
-
-    var latitudeConfigurada = parseFloat('{{ $latitudeConfigurada }}');
-    var longitudeConfigurada = parseFloat('{{ $longitudeConfigurada }}');
-    var raioConfigurado = parseFloat('{{ $raioConfigurado }}');
-
-    if (isNaN(latitudeConfigurada) || isNaN(longitudeConfigurada) || isNaN(raioConfigurado)) {
-        evento.preventDefault();
-        alert('A configuração de localização está incompleta.');
-        return false;
-    }
-
-    var distancia = calcularDistanciaEmMetros(latitudeAtual, longitudeAtual, latitudeConfigurada, longitudeConfigurada);
-    if (distancia > raioConfigurado) {
-        evento.preventDefault();
-        alert('Você está fora da área permitida para registrar o ponto.');
-        return false;
-    }
-
-    return true;
-}
-
-window.addEventListener('load', function() {
-    habilitarBotoes();
-    preencherLocalizacao();
-    document.getElementById('form-entrada').addEventListener('submit', validarAntesEnviar);
-    document.getElementById('form-saida').addEventListener('submit', validarAntesEnviar);
-});
-</script>
 
 @endsection
