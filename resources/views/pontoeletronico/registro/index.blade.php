@@ -135,4 +135,35 @@ $hora = Date('H:i');
 
     </section>
 
+<script>
+function preencherLocalizacao() {
+    if (!navigator.geolocation) {
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+
+        var entradaLat = document.getElementById('latitude-entrada');
+        var entradaLon = document.getElementById('longitude-entrada');
+        var saidaLat = document.getElementById('latitude-saida');
+        var saidaLon = document.getElementById('longitude-saida');
+
+        if (entradaLat) entradaLat.value = lat;
+        if (entradaLon) entradaLon.value = lon;
+        if (saidaLat) saidaLat.value = lat;
+        if (saidaLon) saidaLon.value = lon;
+    }, function(error) {
+        console.warn('Erro ao obter geolocalização:', error);
+    }, {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+    });
+}
+
+window.addEventListener('load', preencherLocalizacao);
+</script>
+
 @endsection
