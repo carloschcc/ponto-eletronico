@@ -185,6 +185,7 @@ $hora = Date('H:i');
 var localizacaoDetectada = false;
 var configLatitude = '{{ $latitudeConfigurada }}';
 var configLongitude = '{{ $longitudeConfigurada }}';
+var configRaio = {{ $raioConfigurado ?: 50 }};
 var locationRequired = '{{ $habilitarLocalizacao }}' === '1';
 function atualizarStatus(mensagem, classe) {
     var status = document.getElementById('location-status');
@@ -203,6 +204,30 @@ function atualizarBotoes() {
     });
 }
 
+function calcularDistanciaEmMetros(lat1, lon1, lat2, lon2) {
+    var toRad = function(value) { return value * Math.PI / 180; };
+    var R = 6371000;
+    var dLat = toRad(lat2 - lat1);
+    var dLon = toRad(lon2 - lon1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function validarLocalizacaoReal(lat, lon) {
+    if (!locationRequired || !configLatitude || !configLongitude) {
+        return true;
+    }
+    var distancia = calcularDistanciaEmMetros(parseFloat(lat), parseFloat(lon), parseFloat(configLatitude), parseFloat(configLongitude));
+    if (distancia > configRaio) {
+        atualizarStatus('Localização real (' + origem + ') está fora do raio configurado (' + Math.round(distancia) + 'm). Registro negado.', 'alert-danger');
+        localizacaoDetectada = false;
+        atualizarBotoes();
+        return false;
+    }
+    return true;
+}
+
 function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     var entradaLat = document.getElementById('latitude-entrada');
     var entradaLon = document.getElementById('longitude-entrada');
@@ -219,8 +244,10 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     if (displayLon) displayLon.value = lon;
 
     if (marcarCapturada) {
-        localizacaoDetectada = true;
-        atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
+        if (validarLocalizacaoReal(lat, lon)) {
+            localizacaoDetectada = true;
+            atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
+        }
     }
     atualizarBotoes();
 }
@@ -268,15 +295,35 @@ document.getElementById('btn-detect-location').addEventListener('click', functio
 });
 
 document.getElementById('btn-set-coords').addEventListener('click', function() {
-    var lat = document.getElementById('manual-latitude').value.trim();
-    var lon = document.getElementById('manual-longitude').value.trim();
+    var manualLatInput = document.getElementById('manual-latitude');
+    var manualLonInput = document.getElementById('manual-longitude');
+    var manualLat = manualLatInput.value.trim();
+    var manualLon = manualLonInput.value.trim();
 
-    if (!lat || !lon) {
-        alert('Preencha latitude e longitude antes de usar.');
+    if (!manualLat || !manualLon) {
+        if (configLatitude && configLongitude) {
+            manualLatInput.value = configLatitude;
+            manualLonInput.value = configLongitude;
+            atualizarStatus('Coordenadas do administrador carregadas para referência.', 'alert-info');
+        } else {
+            alert('Não há coordenadas do administrador definidas. Preencha manualmente.');
+        }
         return;
     }
 
-    preencherLocalizacao(lat, lon, 'fallback manual');
+    if (configLatitude && configLongitude && (manualLat !== configLatitude || manualLon !== configLongitude)) {
+        alert('As coordenadas manuais devem ser iguais às coordenadas configuradas pelo administrador.');
+        return;
+    }
+
+    var realLat = document.getElementById('latitude-entrada').value || document.getElementById('latitude-saida').value;
+    var realLon = document.getElementById('longitude-entrada').value || document.getElementById('longitude-saida').value;
+    if (realLat && realLon && (manualLat !== realLat || manualLon !== realLon)) {
+        alert('As coordenadas manuais não correspondem à localização real do dispositivo. Registro não permitido.');
+        return;
+    }
+
+    atualizarStatus('Coordenadas manuais carregadas, mas a localização real será usada para registrar.', 'alert-info');
 });
 
 window.addEventListener('load', function() {
