@@ -94,22 +94,40 @@ $hora = Date('H:i');
 
               <div class="box box-info" style="margin-top:20px;">
                 <div class="box-header with-border">
-                  <h3 class="box-title"><i class="fa fa-map-marker"></i> Localização manual</h3>
+                  <h3 class="box-title"><i class="fa fa-map-marker"></i> Localização do Ponto</h3>
                 </div>
                 <div class="box-body">
-                  <p class="text-muted" style="font-size:12px;">
-                    Se o GPS não funcionar no celular via HTTP, cole as coordenadas do Google Maps e use-as no registro.
+                  <div id="location-status" class="alert alert-info" style="font-size:13px;">
+                    <strong>Status:</strong> aguardando tentativa de obtenção da localização.
+                  </div>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Latitude atual</label>
+                        <input type="text" id="display-latitude" class="form-control" readonly>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label>Longitude atual</label>
+                        <input type="text" id="display-longitude" class="form-control" readonly>
+                      </div>
+                    </div>
+                  </div>
+                  <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Detectar localização automaticamente</button>
+                  <p class="text-muted" style="font-size:12px; margin-top:10px;">
+                    Caso o GPS não retorne coordenadas, use as coordenadas do administrador ou do Google Maps.
                   </p>
                   <div class="form-group">
-                    <label>Latitude manual</label>
+                    <label>Latitude de fallback</label>
                     <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520">
                   </div>
                   <div class="form-group">
-                    <label>Longitude manual</label>
+                    <label>Longitude de fallback</label>
                     <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308">
                   </div>
-                  <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar essas coordenadas</button>
-                  <a id="maps-link" class="btn btn-primary btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
+                  <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar coordenadas de fallback</button>
+                  <a id="maps-link" class="btn btn-info btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
                 </div>
               </div>
             </div>
@@ -157,25 +175,44 @@ $hora = Date('H:i');
     </section>
 
 <script>
-function preencherLocalizacao() {
+var localizacaoDetectada = false;
+function atualizarStatus(mensagem, classe) {
+    var status = document.getElementById('location-status');
+    if (!status) return;
+    status.className = 'alert ' + classe;
+    status.innerHTML = '<strong>Status:</strong> ' + mensagem;
+}
+
+function preencherLocalizacao(lat, lon, origem) {
+    var entradaLat = document.getElementById('latitude-entrada');
+    var entradaLon = document.getElementById('longitude-entrada');
+    var saidaLat = document.getElementById('latitude-saida');
+    var saidaLon = document.getElementById('longitude-saida');
+    var displayLat = document.getElementById('display-latitude');
+    var displayLon = document.getElementById('display-longitude');
+
+    if (entradaLat) entradaLat.value = lat;
+    if (entradaLon) entradaLon.value = lon;
+    if (saidaLat) saidaLat.value = lat;
+    if (saidaLon) saidaLon.value = lon;
+    if (displayLat) displayLat.value = lat;
+    if (displayLon) displayLon.value = lon;
+
+    localizacaoDetectada = true;
+    atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
+}
+
+function tentarCapturarGPS() {
     if (!navigator.geolocation) {
+        atualizarStatus('Este navegador não suporta GPS.', 'alert-danger');
         return;
     }
 
+    atualizarStatus('Tentando capturar GPS...', 'alert-warning');
     navigator.geolocation.getCurrentPosition(function(position) {
-        var lat = position.coords.latitude;
-        var lon = position.coords.longitude;
-
-        var entradaLat = document.getElementById('latitude-entrada');
-        var entradaLon = document.getElementById('longitude-entrada');
-        var saidaLat = document.getElementById('latitude-saida');
-        var saidaLon = document.getElementById('longitude-saida');
-
-        if (entradaLat) entradaLat.value = lat;
-        if (entradaLon) entradaLon.value = lon;
-        if (saidaLat) saidaLat.value = lat;
-        if (saidaLon) saidaLon.value = lon;
+        preencherLocalizacao(position.coords.latitude, position.coords.longitude, 'GPS');
     }, function(error) {
+        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Use coordenadas manuais.', 'alert-danger');
         console.warn('Erro ao obter geolocalização:', error);
     }, {
         enableHighAccuracy: true,
@@ -184,27 +221,23 @@ function preencherLocalizacao() {
     });
 }
 
+document.getElementById('btn-detect-location').addEventListener('click', function() {
+    tentarCapturarGPS();
+});
+
 document.getElementById('btn-set-coords').addEventListener('click', function() {
     var lat = document.getElementById('manual-latitude').value.trim();
     var lon = document.getElementById('manual-longitude').value.trim();
-    var entradaLat = document.getElementById('latitude-entrada');
-    var entradaLon = document.getElementById('longitude-entrada');
-    var saidaLat = document.getElementById('latitude-saida');
-    var saidaLon = document.getElementById('longitude-saida');
 
     if (!lat || !lon) {
         alert('Preencha latitude e longitude antes de usar.');
         return;
     }
 
-    entradaLat.value = lat;
-    entradaLon.value = lon;
-    saidaLat.value = lat;
-    saidaLon.value = lon;
-    alert('Coordenadas manuais aplicadas. Agora você pode registrar ponto.');
+    preencherLocalizacao(lat, lon, 'fallback manual');
 });
 
-window.addEventListener('load', preencherLocalizacao);
+window.addEventListener('load', tentarCapturarGPS);
 </script>
 
 @endsection
