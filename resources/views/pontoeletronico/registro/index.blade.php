@@ -75,8 +75,8 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="entrada">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type="hidden" name="latitude" id="latitude-entrada" value="{{ $habilitarLocalizacao == '1' ? $latitudeConfigurada : '' }}">
-                          <input type="hidden" name="longitude" id="longitude-entrada" value="{{ $habilitarLocalizacao == '1' ? $longitudeConfigurada : '' }}">
+                          <input type="hidden" name="latitude" id="latitude-entrada" value="">
+                          <input type="hidden" name="longitude" id="longitude-entrada" value="">
                           <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
                       </form>
                   </div>
@@ -85,8 +85,8 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="saida">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type="hidden" name="latitude" id="latitude-saida" value="{{ $habilitarLocalizacao == '1' ? $latitudeConfigurada : '' }}">
-                          <input type="hidden" name="longitude" id="longitude-saida" value="{{ $habilitarLocalizacao == '1' ? $longitudeConfigurada : '' }}">
+                          <input type="hidden" name="latitude" id="latitude-saida" value="">
+                          <input type="hidden" name="longitude" id="longitude-saida" value="">
                           <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
                       </form>
                   </div>
@@ -117,22 +117,23 @@ $hora = Date('H:i');
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Detectar localização automaticamente</button>
                   @if($habilitarLocalizacao == '1' && $latitudeConfigurada && $longitudeConfigurada)
                   <p class="text-muted" style="font-size:12px; margin-top:10px;">
-                    Local do ponto configurado: <strong>{{ $latitudeConfigurada }}, {{ $longitudeConfigurada }}</strong> (raio {{ $raioConfigurado }}m). Se o GPS falhar, estes valores serão usados automaticamente.
+                    Local do ponto configurado: <strong>{{ $latitudeConfigurada }}, {{ $longitudeConfigurada }}</strong> (raio {{ $raioConfigurado }}m).
+                    O registro usará a localização do GPS ou do IP. Se essas opções falharem, insira manualmente sua posição.
                   </p>
                   @else
                   <p class="text-muted" style="font-size:12px; margin-top:10px;">
-                    Caso o GPS não retorne coordenadas, use as coordenadas do Google Maps.
+                    O registro usará a localização do GPS ou do IP. Se não for possível obter, informe as coordenadas manualmente.
                   </p>
                   @endif
                   <div class="form-group">
                     <label>Latitude de fallback</label>
-                    <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520" value="{{ $latitudeConfigurada }}">
+                    <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520">
                   </div>
                   <div class="form-group">
                     <label>Longitude de fallback</label>
-                    <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308" value="{{ $longitudeConfigurada }}">
+                    <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308">
                   </div>
-                  <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar coordenadas de fallback</button>
+                  <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar coordenadas manuais</button>
                   <a id="maps-link" class="btn btn-info btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
                 </div>
               </div>
@@ -184,11 +185,22 @@ $hora = Date('H:i');
 var localizacaoDetectada = false;
 var configLatitude = '{{ $latitudeConfigurada }}';
 var configLongitude = '{{ $longitudeConfigurada }}';
+var locationRequired = '{{ $habilitarLocalizacao }}' === '1';
 function atualizarStatus(mensagem, classe) {
     var status = document.getElementById('location-status');
     if (!status) return;
     status.className = 'alert ' + classe;
     status.innerHTML = '<strong>Status:</strong> ' + mensagem;
+}
+
+function atualizarBotoes() {
+    var entradas = document.querySelectorAll('#form-entrada input[type=submit], #form-saida input[type=submit]');
+    var bloqueado = locationRequired && !localizacaoDetectada;
+    entradas.forEach(function(botao) {
+        botao.disabled = bloqueado;
+        botao.style.opacity = bloqueado ? '0.6' : '1';
+        botao.title = bloqueado ? 'Aguardando localização para registrar ponto.' : '';
+    });
 }
 
 function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
@@ -210,12 +222,13 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
         localizacaoDetectada = true;
         atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
     }
+    atualizarBotoes();
 }
 
 function tentarCapturarGPS() {
     if (!navigator.geolocation) {
-        atualizarStatus('Este navegador não suporta GPS.', 'alert-danger');
-        aplicarConfiguracaoComoFallback();
+        atualizarStatus('Este navegador não suporta GPS. Tentando IP...', 'alert-danger');
+        obterLocalizacaoPorIP();
         return;
     }
 
@@ -224,8 +237,8 @@ function tentarCapturarGPS() {
         preencherLocalizacao(position.coords.latitude, position.coords.longitude, 'GPS');
     }, function(error) {
         console.warn('Erro ao obter geolocalização:', error);
-        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Usando coordenadas de fallback.', 'alert-danger');
-        aplicarConfiguracaoComoFallback();
+        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Tentando localização por IP.', 'alert-danger');
+        obterLocalizacaoPorIP();
     }, {
         enableHighAccuracy: true,
         timeout: 20000,
@@ -233,14 +246,21 @@ function tentarCapturarGPS() {
     });
 }
 
-function aplicarConfiguracaoComoFallback() {
-    var lat = configLatitude;
-    var lon = configLongitude;
-
-    if (lat && lon) {
-        preencherLocalizacao(lat, lon, 'fallback configurado', false);
-        atualizarStatus('Usando coordenadas do administrador como fallback.', 'alert-info');
-    }
+function obterLocalizacaoPorIP() {
+    atualizarStatus('Tentando localização por IP...', 'alert-warning');
+    fetch('https://ipapi.co/json/')
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data && data.latitude && data.longitude) {
+                preencherLocalizacao(data.latitude, data.longitude, 'IP');
+            } else {
+                atualizarStatus('Não foi possível obter localização por IP. Use coordenadas manuais.', 'alert-danger');
+            }
+        })
+        .catch(function(err) {
+            console.warn('Erro IP geolocation:', err);
+            atualizarStatus('Falha na localização por IP. Use coordenadas manuais.', 'alert-danger');
+        });
 }
 
 document.getElementById('btn-detect-location').addEventListener('click', function() {
@@ -260,8 +280,8 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
 });
 
 window.addEventListener('load', function() {
+    atualizarBotoes();
     tentarCapturarGPS();
-    aplicarConfiguracaoComoFallback();
 });
 </script>
 
