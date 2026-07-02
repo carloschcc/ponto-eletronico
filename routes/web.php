@@ -69,6 +69,7 @@ Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function(
   Route::get('/periodo/desativar/{id}', 'PeriodoController@desativar');
 
   Route::get('/configuracao', 'ConfiguracaoController@index');
+  Route::post('/configuracao/localizacao', 'ConfiguracaoController@salvarLocalizacao');
   Route::post('/configuracao/logo', 'ConfiguracaoController@salvarLogo');
 
   Route::get('/sair', 'LoginPainelController@sair');

@@ -23,11 +23,73 @@ class ConfiguracaoController extends PontoEletronicoController {
         $logo_espelho_existe   = file_exists(public_path('img/logo_espelho_v2.png'));
         $timezone_atual        = date_default_timezone_get();
         $hora_atual            = date('d/m/Y H:i:s');
+        $configuracao_localizacao = getenv('PONTO_LOCALIZACAO_HABILITAR') ?: env('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $localizacao_latitude = getenv('PONTO_LOCALIZACAO_LATITUDE') ?: env('PONTO_LOCALIZACAO_LATITUDE', '');
+        $localizacao_longitude = getenv('PONTO_LOCALIZACAO_LONGITUDE') ?: env('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $localizacao_raio = getenv('PONTO_LOCALIZACAO_RAIO') ?: env('PONTO_LOCALIZACAO_RAIO', '50');
 
         return view('pontoeletronico/configuracao/index', compact(
             'logo_url', 'logo_espelho_url', 'logo_espelho_existe',
-            'timezone_atual', 'hora_atual'
+            'timezone_atual', 'hora_atual', 'configuracao_localizacao',
+            'localizacao_latitude', 'localizacao_longitude', 'localizacao_raio'
         ));
+    }
+
+    public function salvarLocalizacao()
+    {
+        $admin = Session::get('login.ponto.painel.admin');
+        if ($admin != 1) {
+            return redirect(getenv('APP_URL').'/painel/dashboard');
+        }
+
+        $habilitar = trim(Request::input('habilitar_localizacao', '0'));
+        $latitude = trim(Request::input('latitude', ''));
+        $longitude = trim(Request::input('longitude', ''));
+        $raio = trim(Request::input('raio', '50'));
+
+        $this->persistirValorEnv('PONTO_LOCALIZACAO_HABILITAR', $habilitar);
+        $this->persistirValorEnv('PONTO_LOCALIZACAO_LATITUDE', $latitude);
+        $this->persistirValorEnv('PONTO_LOCALIZACAO_LONGITUDE', $longitude);
+        $this->persistirValorEnv('PONTO_LOCALIZACAO_RAIO', $raio);
+
+        Session::put('status.msg', 'Configuração de localização atualizada com sucesso!');
+        return redirect(getenv('APP_URL').'/painel/configuracao');
+    }
+
+    private function persistirValorEnv($chave, $valor)
+    {
+        $caminhoEnv = base_path('.env');
+        $arquivoExiste = file_exists($caminhoEnv);
+
+        if (!$arquivoExiste) {
+            $modelo = file_exists(base_path('.env.example')) ? base_path('.env.example') : null;
+            if ($modelo) {
+                copy($modelo, $caminhoEnv);
+            } else {
+                file_put_contents($caminhoEnv, "");
+            }
+        }
+
+        $conteudo = file_get_contents($caminhoEnv);
+        $linhas = preg_split("/\r\n|\n|\r/", $conteudo);
+        $encontrado = false;
+
+        foreach ($linhas as &$linha) {
+            if (preg_match('/^' . preg_quote($chave, '/') . '=/u', $linha)) {
+                $linha = $chave . '=' . $valor;
+                $encontrado = true;
+                break;
+            }
+        }
+
+        if (!$encontrado) {
+            $linhas[] = $chave . '=' . $valor;
+        }
+
+        file_put_contents($caminhoEnv, implode(PHP_EOL, $linhas) . PHP_EOL);
+        putenv($chave . '=' . $valor);
+        $_ENV[$chave] = $valor;
+        $_SERVER[$chave] = $valor;
     }
 
     public function salvarLogo()

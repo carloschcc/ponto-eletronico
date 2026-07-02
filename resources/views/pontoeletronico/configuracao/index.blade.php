@@ -67,6 +67,43 @@
       </div>
     </div>
 
+    {{-- Configuração de Localização para Registro de Ponto --}}
+    <div class="col-md-4">
+      <div class="box box-info">
+        <div class="box-header with-border">
+          <h3 class="box-title"><i class="fa fa-map-marker"></i> Localização para Registro</h3>
+        </div>
+        <div class="box-body">
+          <form method="POST" action="{{ getenv('APP_URL') }}/painel/configuracao/localizacao">
+            {{ csrf_field() }}
+            <div class="form-group">
+              <label>
+                <input type="checkbox" name="habilitar_localizacao" value="1" {{ $configuracao_localizacao == '1' ? 'checked' : '' }}>
+                Exigir localização ao registrar ponto
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Latitude</label>
+              <input type="text" name="latitude" class="form-control" value="{{ $localizacao_latitude }}" placeholder="-23.550520">
+            </div>
+            <div class="form-group">
+              <label>Longitude</label>
+              <input type="text" name="longitude" class="form-control" value="{{ $localizacao_longitude }}" placeholder="-46.633308">
+            </div>
+            <div class="form-group">
+              <label>Raio permitido (metros)</label>
+              <input type="number" name="raio" class="form-control" min="1" value="{{ $localizacao_raio }}" placeholder="50">
+            </div>
+            <button type="submit" class="btn btn-info btn-sm"><i class="fa fa-save"></i> Salvar</button>
+          </form>
+          <p class="text-muted" style="margin-top:12px; font-size:12px;">
+            <i class="fa fa-info-circle"></i>
+            Quando habilitado, o sistema exige que o dispositivo esteja dentro da área configurada para registrar ponto.
+          </p>
+        </div>
+      </div>
+    </div>
+
     {{-- Fuso Horário (informativo) --}}
     <div class="col-md-4">
       <div class="box box-info">

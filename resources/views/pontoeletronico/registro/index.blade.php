@@ -71,18 +71,22 @@ $hora = Date('H:i');
 
               <div class="row">
                   <div class='col-md-6 col-xs-6'>
-                      <form method="post" action="registrar" name="form-entrada">
+                      <form method="post" action="registrar" name="form-entrada" id="form-entrada">
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="entrada">
                           <input type="hidden" name="hora" value="<?=$hora?>">
+                          <input type="hidden" name="latitude" id="latitude-entrada" value="">
+                          <input type="hidden" name="longitude" id="longitude-entrada" value="">
                           <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
                       </form>
                   </div>
                   <div class='col-md-6 col-xs-6'>
-                      <form method="post" action="registrar" name="form-saida">
+                      <form method="post" action="registrar" name="form-saida" id="form-saida">
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="saida">
                           <input type="hidden" name="hora" value="<?=$hora?>">
+                          <input type="hidden" name="latitude" id="latitude-saida" value="">
+                          <input type="hidden" name="longitude" id="longitude-saida" value="">
                           <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
                       </form>
                   </div>
@@ -131,5 +135,21 @@ $hora = Date('H:i');
 
     </section>
 
+<script>
+function preencherLocalizacao() {
+    if (!navigator.geolocation) {
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(function(position) {
+        document.getElementById('latitude-entrada').value = position.coords.latitude;
+        document.getElementById('longitude-entrada').value = position.coords.longitude;
+        document.getElementById('latitude-saida').value = position.coords.latitude;
+        document.getElementById('longitude-saida').value = position.coords.longitude;
+    });
+}
+
+window.addEventListener('load', preencherLocalizacao);
+</script>
 
 @endsection
