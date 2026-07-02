@@ -309,13 +309,15 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
 
     if (!manualLat || !manualLon) {
         if (configLatitude && configLongitude) {
-            manualLatInput.value = configLatitude;
-            manualLonInput.value = configLongitude;
+            manualLat = configLatitude;
+            manualLon = configLongitude;
+            manualLatInput.value = manualLat;
+            manualLonInput.value = manualLon;
             atualizarStatus('Coordenadas do administrador carregadas para referência.', 'alert-info');
         } else {
             alert('Não há coordenadas do administrador definidas. Preencha manualmente.');
+            return;
         }
-        return;
     }
 
     if (configLatitude && configLongitude) {
