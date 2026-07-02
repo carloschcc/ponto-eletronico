@@ -58,38 +58,7 @@ class ConfiguracaoController extends PontoEletronicoController {
 
     private function persistirValorEnv($chave, $valor)
     {
-        $caminhoEnv = base_path('.env');
-        $arquivoExiste = file_exists($caminhoEnv);
-
-        if (!$arquivoExiste) {
-            $modelo = file_exists(base_path('.env.example')) ? base_path('.env.example') : null;
-            if ($modelo) {
-                copy($modelo, $caminhoEnv);
-            } else {
-                file_put_contents($caminhoEnv, "");
-            }
-        }
-
-        $conteudo = file_get_contents($caminhoEnv);
-        $linhas = preg_split("/\r\n|\n|\r/", $conteudo);
-        $encontrado = false;
-
-        foreach ($linhas as &$linha) {
-            if (preg_match('/^' . preg_quote($chave, '/') . '=/u', $linha)) {
-                $linha = $chave . '=' . $valor;
-                $encontrado = true;
-                break;
-            }
-        }
-
-        if (!$encontrado) {
-            $linhas[] = $chave . '=' . $valor;
-        }
-
-        file_put_contents($caminhoEnv, implode(PHP_EOL, $linhas) . PHP_EOL);
-        putenv($chave . '=' . $valor);
-        $_ENV[$chave] = $valor;
-        $_SERVER[$chave] = $valor;
+        \App\Configuracao::salvar($chave, $valor);
     }
 
     public function salvarLogo()
