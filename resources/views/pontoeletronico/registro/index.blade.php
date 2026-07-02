@@ -72,6 +72,11 @@ $hora = Date('H:i');
               <div id="gps-status" class="alert alert-warning" style="margin-bottom: 15px; text-align: left;">
                 <strong><i class="fa fa-location-arrow"></i> GPS:</strong> aguardando autorização...
               </div>
+              @if(!$isHttps)
+              <div class="alert alert-danger" style="margin-bottom: 15px; text-align: left;">
+                <strong><i class="fa fa-warning"></i> HTTPS necessário:</strong> este acesso está via HTTP/IP. Em muitos navegadores o GPS exige HTTPS ou localhost para funcionar corretamente.
+              </div>
+              @endif
 
               <div class="row">
                   <div class='col-md-6 col-xs-6'>
@@ -143,7 +148,7 @@ $hora = Date('H:i');
 var localizacaoPermitida = false;
 var latitudeAtual = '';
 var longitudeAtual = '';
-var habilitarLocalizacao = '{{ env("PONTO_LOCALIZACAO_HABILITAR", "0") }}';
+var habilitarLocalizacao = '{{ $habilitarLocalizacao }}';
 
 function atualizarStatusGps(mensagem, tipo) {
     var status = document.getElementById('gps-status');
@@ -229,9 +234,9 @@ function validarAntesEnviar(evento) {
         return false;
     }
 
-    var latitudeConfigurada = parseFloat('{{ env("PONTO_LOCALIZACAO_LATITUDE", "") }}');
-    var longitudeConfigurada = parseFloat('{{ env("PONTO_LOCALIZACAO_LONGITUDE", "") }}');
-    var raioConfigurado = parseFloat('{{ env("PONTO_LOCALIZACAO_RAIO", "50") }}');
+    var latitudeConfigurada = parseFloat('{{ $latitudeConfigurada }}');
+    var longitudeConfigurada = parseFloat('{{ $longitudeConfigurada }}');
+    var raioConfigurado = parseFloat('{{ $raioConfigurado }}');
 
     if (isNaN(latitudeConfigurada) || isNaN(longitudeConfigurada) || isNaN(raioConfigurado)) {
         evento.preventDefault();
