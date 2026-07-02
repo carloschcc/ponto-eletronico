@@ -2,6 +2,7 @@
 
 
 use Illuminate\Support\Facades\DB;
+use App\Configuracao;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
@@ -27,8 +28,19 @@ class DashboardController extends PontoEletronicoController {
         $usuario = Usuario::find($usuario_id);
         
         $registros = Ponto::where(['usuario_id' => $usuario_id, 'data' => $hoje])->orderBy('id', 'ASC')->get();
-        
-        return view('pontoeletronico/registro/index')->with('usuario', $usuario)->with('registros', $registros);
+
+        $habilitarLocalizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $latitudeConfigurada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $longitudeConfigurada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $raioConfigurado = Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
+
+        return view('pontoeletronico/registro/index')
+            ->with('usuario', $usuario)
+            ->with('registros', $registros)
+            ->with('habilitarLocalizacao', $habilitarLocalizacao)
+            ->with('latitudeConfigurada', $latitudeConfigurada)
+            ->with('longitudeConfigurada', $longitudeConfigurada)
+            ->with('raioConfigurado', $raioConfigurado);
         
             
     }

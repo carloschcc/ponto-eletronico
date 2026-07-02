@@ -91,6 +91,27 @@ $hora = Date('H:i');
                       </form>
                   </div>
               </div>
+
+              <div class="box box-info" style="margin-top:20px;">
+                <div class="box-header with-border">
+                  <h3 class="box-title"><i class="fa fa-map-marker"></i> Localização manual</h3>
+                </div>
+                <div class="box-body">
+                  <p class="text-muted" style="font-size:12px;">
+                    Se o GPS não funcionar no celular via HTTP, cole as coordenadas do Google Maps e use-as no registro.
+                  </p>
+                  <div class="form-group">
+                    <label>Latitude manual</label>
+                    <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520">
+                  </div>
+                  <div class="form-group">
+                    <label>Longitude manual</label>
+                    <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308">
+                  </div>
+                  <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar essas coordenadas</button>
+                  <a id="maps-link" class="btn btn-primary btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
+                </div>
+              </div>
             </div>
             <!-- /.box-body -->
           </div>
@@ -162,6 +183,26 @@ function preencherLocalizacao() {
         maximumAge: 0
     });
 }
+
+document.getElementById('btn-set-coords').addEventListener('click', function() {
+    var lat = document.getElementById('manual-latitude').value.trim();
+    var lon = document.getElementById('manual-longitude').value.trim();
+    var entradaLat = document.getElementById('latitude-entrada');
+    var entradaLon = document.getElementById('longitude-entrada');
+    var saidaLat = document.getElementById('latitude-saida');
+    var saidaLon = document.getElementById('longitude-saida');
+
+    if (!lat || !lon) {
+        alert('Preencha latitude e longitude antes de usar.');
+        return;
+    }
+
+    entradaLat.value = lat;
+    entradaLon.value = lon;
+    saidaLat.value = lat;
+    saidaLon.value = lon;
+    alert('Coordenadas manuais aplicadas. Agora você pode registrar ponto.');
+});
 
 window.addEventListener('load', preencherLocalizacao);
 </script>
