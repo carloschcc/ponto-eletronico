@@ -183,6 +183,8 @@ $hora = Date('H:i');
 
 <script>
 var localizacaoDetectada = false;
+var realLatitude = null;
+var realLongitude = null;
 var configLatitude = '{{ $latitudeConfigurada }}';
 var configLongitude = '{{ $longitudeConfigurada }}';
 var configRaio = {{ $raioConfigurado ?: 50 }};
@@ -214,7 +216,7 @@ function calcularDistanciaEmMetros(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-function validarLocalizacaoReal(lat, lon) {
+function validarLocalizacaoReal(lat, lon, origem) {
     if (!locationRequired || !configLatitude || !configLongitude) {
         return true;
     }
@@ -243,8 +245,13 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     if (displayLat) displayLat.value = lat;
     if (displayLon) displayLon.value = lon;
 
+    if (origem === 'GPS' || origem === 'IP') {
+        realLatitude = lat;
+        realLongitude = lon;
+    }
+
     if (marcarCapturada) {
-        if (validarLocalizacaoReal(lat, lon)) {
+        if (validarLocalizacaoReal(lat, lon, origem)) {
             localizacaoDetectada = true;
             atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
         }
@@ -311,19 +318,35 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
         return;
     }
 
-    if (configLatitude && configLongitude && (manualLat !== configLatitude || manualLon !== configLongitude)) {
-        alert('As coordenadas manuais devem ser iguais às coordenadas configuradas pelo administrador.');
-        return;
+    if (configLatitude && configLongitude) {
+        var distanciaManual = calcularDistanciaEmMetros(parseFloat(manualLat), parseFloat(manualLon), parseFloat(configLatitude), parseFloat(configLongitude));
+        if (distanciaManual > configRaio) {
+            alert('As coordenadas manuais estão fora do raio configurado pelo administrador. Ajuste para dentro do raio.');
+            return;
+        }
     }
 
-    var realLat = document.getElementById('latitude-entrada').value || document.getElementById('latitude-saida').value;
-    var realLon = document.getElementById('longitude-entrada').value || document.getElementById('longitude-saida').value;
-    if (realLat && realLon && (manualLat !== realLat || manualLon !== realLon)) {
-        alert('As coordenadas manuais não correspondem à localização real do dispositivo. Registro não permitido.');
-        return;
+    if (realLatitude && realLongitude) {
+        var distanciaReal = calcularDistanciaEmMetros(parseFloat(manualLat), parseFloat(manualLon), parseFloat(realLatitude), parseFloat(realLongitude));
+        if (distanciaReal > 100) {
+            alert('As coordenadas manuais não correspondem à localização real do dispositivo. Registro não permitido.');
+            return;
+        }
     }
 
-    atualizarStatus('Coordenadas manuais carregadas, mas a localização real será usada para registrar.', 'alert-info');
+    if (!realLatitude || !realLongitude) {
+        if (configLatitude && configLongitude) {
+            document.getElementById('latitude-entrada').value = manualLat;
+            document.getElementById('longitude-entrada').value = manualLon;
+            document.getElementById('latitude-saida').value = manualLat;
+            document.getElementById('longitude-saida').value = manualLon;
+            localizacaoDetectada = true;
+            atualizarStatus('Coordenadas manuais carregadas e usadas para registrar ponto.', 'alert-success');
+        }
+    } else {
+        atualizarStatus('Coordenadas manuais carregadas como referência. O registro usa localização real sempre que possível.', 'alert-info');
+    }
+    atualizarBotoes();
 });
 
 window.addEventListener('load', function() {
