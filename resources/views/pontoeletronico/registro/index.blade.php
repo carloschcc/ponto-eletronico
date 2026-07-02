@@ -75,8 +75,8 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="entrada">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type="hidden" name="latitude" id="latitude-entrada" value="">
-                          <input type="hidden" name="longitude" id="longitude-entrada" value="">
+                          <input type="hidden" name="latitude" id="latitude-entrada" value="{{ $habilitarLocalizacao == '1' ? $latitudeConfigurada : '' }}">
+                          <input type="hidden" name="longitude" id="longitude-entrada" value="{{ $habilitarLocalizacao == '1' ? $longitudeConfigurada : '' }}">
                           <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
                       </form>
                   </div>
@@ -85,8 +85,8 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="saida">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type="hidden" name="latitude" id="latitude-saida" value="">
-                          <input type="hidden" name="longitude" id="longitude-saida" value="">
+                          <input type="hidden" name="latitude" id="latitude-saida" value="{{ $habilitarLocalizacao == '1' ? $latitudeConfigurada : '' }}">
+                          <input type="hidden" name="longitude" id="longitude-saida" value="{{ $habilitarLocalizacao == '1' ? $longitudeConfigurada : '' }}">
                           <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
                       </form>
                   </div>
@@ -115,16 +115,22 @@ $hora = Date('H:i');
                     </div>
                   </div>
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Detectar localização automaticamente</button>
+                  @if($habilitarLocalizacao == '1' && $latitudeConfigurada && $longitudeConfigurada)
                   <p class="text-muted" style="font-size:12px; margin-top:10px;">
-                    Caso o GPS não retorne coordenadas, use as coordenadas do administrador ou do Google Maps.
+                    Local do ponto configurado: <strong>{{ $latitudeConfigurada }}, {{ $longitudeConfigurada }}</strong> (raio {{ $raioConfigurado }}m). Se o GPS falhar, estes valores serão usados automaticamente.
                   </p>
+                  @else
+                  <p class="text-muted" style="font-size:12px; margin-top:10px;">
+                    Caso o GPS não retorne coordenadas, use as coordenadas do Google Maps.
+                  </p>
+                  @endif
                   <div class="form-group">
                     <label>Latitude de fallback</label>
-                    <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520">
+                    <input type="text" id="manual-latitude" class="form-control" placeholder="-23.550520" value="{{ $latitudeConfigurada }}">
                   </div>
                   <div class="form-group">
                     <label>Longitude de fallback</label>
-                    <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308">
+                    <input type="text" id="manual-longitude" class="form-control" placeholder="-46.633308" value="{{ $longitudeConfigurada }}">
                   </div>
                   <button type="button" id="btn-set-coords" class="btn btn-default btn-block">Usar coordenadas de fallback</button>
                   <a id="maps-link" class="btn btn-info btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
@@ -176,6 +182,8 @@ $hora = Date('H:i');
 
 <script>
 var localizacaoDetectada = false;
+var configLatitude = '{{ $latitudeConfigurada }}';
+var configLongitude = '{{ $longitudeConfigurada }}';
 function atualizarStatus(mensagem, classe) {
     var status = document.getElementById('location-status');
     if (!status) return;
@@ -183,7 +191,7 @@ function atualizarStatus(mensagem, classe) {
     status.innerHTML = '<strong>Status:</strong> ' + mensagem;
 }
 
-function preencherLocalizacao(lat, lon, origem) {
+function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     var entradaLat = document.getElementById('latitude-entrada');
     var entradaLon = document.getElementById('longitude-entrada');
     var saidaLat = document.getElementById('latitude-saida');
@@ -198,13 +206,16 @@ function preencherLocalizacao(lat, lon, origem) {
     if (displayLat) displayLat.value = lat;
     if (displayLon) displayLon.value = lon;
 
-    localizacaoDetectada = true;
-    atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
+    if (marcarCapturada) {
+        localizacaoDetectada = true;
+        atualizarStatus('Localização capturada via ' + origem + '.', 'alert-success');
+    }
 }
 
 function tentarCapturarGPS() {
     if (!navigator.geolocation) {
         atualizarStatus('Este navegador não suporta GPS.', 'alert-danger');
+        aplicarConfiguracaoComoFallback();
         return;
     }
 
@@ -212,13 +223,24 @@ function tentarCapturarGPS() {
     navigator.geolocation.getCurrentPosition(function(position) {
         preencherLocalizacao(position.coords.latitude, position.coords.longitude, 'GPS');
     }, function(error) {
-        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Use coordenadas manuais.', 'alert-danger');
         console.warn('Erro ao obter geolocalização:', error);
+        atualizarStatus('Falha ao capturar GPS: ' + error.message + '. Usando coordenadas de fallback.', 'alert-danger');
+        aplicarConfiguracaoComoFallback();
     }, {
         enableHighAccuracy: true,
         timeout: 20000,
         maximumAge: 0
     });
+}
+
+function aplicarConfiguracaoComoFallback() {
+    var lat = configLatitude;
+    var lon = configLongitude;
+
+    if (lat && lon) {
+        preencherLocalizacao(lat, lon, 'fallback configurado', false);
+        atualizarStatus('Usando coordenadas do administrador como fallback.', 'alert-info');
+    }
 }
 
 document.getElementById('btn-detect-location').addEventListener('click', function() {
@@ -237,7 +259,10 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
     preencherLocalizacao(lat, lon, 'fallback manual');
 });
 
-window.addEventListener('load', tentarCapturarGPS);
+window.addEventListener('load', function() {
+    tentarCapturarGPS();
+    aplicarConfiguracaoComoFallback();
+});
 </script>
 
 @endsection
