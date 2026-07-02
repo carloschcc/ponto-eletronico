@@ -43,6 +43,44 @@ class PontoController extends PontoEletronicoController {
         $area = Request::input('area');
         $hora_registrada = Request::input('hora');
 
+        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $raio_cadastrado = (float) Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
+
+        $registro_ip = $this->obterIpCliente();
+        $localizacao_ip = null;
+        if ($habilitar_localizacao == '1') {
+            $localizacao_ip = $this->obterLocalizacaoIp();
+        }
+
+        if ($habilitar_localizacao == '1') {
+            if ($latitude_cadastrada === '' || $longitude_cadastrada === '') {
+                Session::put('status.msg', 'A configuração de localização não está completa. Solicite ao administrador.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+
+            if (!$registro_ip) {
+                Session::put('status.msg', 'Não foi possível determinar seu IP para registro. Registro negado.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+
+            if (!$localizacao_ip) {
+                Session::put('status.msg', 'Não foi possível obter localização por IP. Registro negado.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+
+            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
+            if ($distancia_ip > $raio_cadastrado) {
+                Session::put('status.msg', 'Sua localização pela rede (IP) está fora da área permitida.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+        }
+
         if($area == 'entrada'):
             
             if(!empty($registro_saida) AND !empty($registro_entrada)):
@@ -52,6 +90,11 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                if ($localizacao_ip) {
+                    $ponto->entrada_latitude = $localizacao_ip['latitude'];
+                    $ponto->entrada_longitude = $localizacao_ip['longitude'];
+                }
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -67,6 +110,11 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                if ($localizacao_ip) {
+                    $ponto->entrada_latitude = $localizacao_ip['latitude'];
+                    $ponto->entrada_longitude = $localizacao_ip['longitude'];
+                }
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -92,6 +140,11 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                if ($localizacao_ip) {
+                    $ponto->entrada_latitude = $localizacao_ip['latitude'];
+                    $ponto->entrada_longitude = $localizacao_ip['longitude'];
+                }
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -125,6 +178,11 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
+                $ponto->saida_ip = $registro_ip;
+                if ($localizacao_ip) {
+                    $ponto->saida_latitude = $localizacao_ip['latitude'];
+                    $ponto->saida_longitude = $localizacao_ip['longitude'];
+                }
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -138,6 +196,11 @@ class PontoController extends PontoEletronicoController {
                 $ponto = Ponto::find($ultimo_registro->id);
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
+                $ponto->saida_ip = $registro_ip;
+                if ($localizacao_ip) {
+                    $ponto->saida_latitude = $localizacao_ip['latitude'];
+                    $ponto->saida_longitude = $localizacao_ip['longitude'];
+                }
                 $ponto->save();
                 
                 Session::put('status.msg', 'Saída registrada com sucesso! Até breve!');

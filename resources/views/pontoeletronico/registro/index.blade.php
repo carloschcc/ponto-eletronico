@@ -105,6 +105,16 @@ $hora = Date('H:i');
                   @endif
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
                   <a id="maps-link" class="btn btn-info btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
+                  <div class="box box-default" style="margin-top:15px; padding:15px; background:#f5f5f5;">
+                    <p style="margin:0; font-size:14px;"><strong>IP atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
+                    <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong>
+                      @if($localizacaoIp && $localizacaoIp['latitude'] && $localizacaoIp['longitude'])
+                        {{ $localizacaoIp['latitude'] }}, {{ $localizacaoIp['longitude'] }}
+                      @else
+                        não disponível
+                      @endif
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -130,8 +140,28 @@ $hora = Date('H:i');
                             </tr>
                             @foreach($registros as $registro)
                             <tr>
-                                <td>{{ $registro->entrada }}</td>
-                                <td>{{ $registro->saida }}</td>
+                                <td>
+                                    {{ $registro->entrada }}<br>
+                                    <small class="text-muted">
+                                        @if($registro->entrada_ip)
+                                            IP: {{ $registro->entrada_ip }}<br>
+                                        @endif
+                                        @if($registro->entrada_latitude && $registro->entrada_longitude)
+                                            Localização: {{ $registro->entrada_latitude }}, {{ $registro->entrada_longitude }}
+                                        @endif
+                                    </small>
+                                </td>
+                                <td>
+                                    {{ $registro->saida }}<br>
+                                    <small class="text-muted">
+                                        @if($registro->saida_ip)
+                                            IP: {{ $registro->saida_ip }}<br>
+                                        @endif
+                                        @if($registro->saida_latitude && $registro->saida_longitude)
+                                            Localização: {{ $registro->saida_latitude }}, {{ $registro->saida_longitude }}
+                                        @endif
+                                    </small>
+                                </td>
                             </tr>
                             @endforeach
                             
