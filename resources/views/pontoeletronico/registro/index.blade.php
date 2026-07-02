@@ -136,20 +136,85 @@ $hora = Date('H:i');
     </section>
 
 <script>
+var localizacaoPermitida = false;
+var latitudeAtual = '';
+var longitudeAtual = '';
+
 function preencherLocalizacao() {
     if (!navigator.geolocation) {
         return;
     }
 
     navigator.geolocation.getCurrentPosition(function(position) {
-        document.getElementById('latitude-entrada').value = position.coords.latitude;
-        document.getElementById('longitude-entrada').value = position.coords.longitude;
-        document.getElementById('latitude-saida').value = position.coords.latitude;
-        document.getElementById('longitude-saida').value = position.coords.longitude;
+        latitudeAtual = position.coords.latitude;
+        longitudeAtual = position.coords.longitude;
+        localizacaoPermitida = true;
+
+        document.getElementById('latitude-entrada').value = latitudeAtual;
+        document.getElementById('longitude-entrada').value = longitudeAtual;
+        document.getElementById('latitude-saida').value = latitudeAtual;
+        document.getElementById('longitude-saida').value = longitudeAtual;
+    }, function() {
+        localizacaoPermitida = false;
+        document.getElementById('latitude-entrada').value = '';
+        document.getElementById('longitude-entrada').value = '';
+        document.getElementById('latitude-saida').value = '';
+        document.getElementById('longitude-saida').value = '';
+    }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
     });
 }
 
-window.addEventListener('load', preencherLocalizacao);
+function calcularDistanciaEmMetros(lat1, lon1, lat2, lon2) {
+    var earthRadius = 6371000;
+    var dLat = (lat2 - lat1) * Math.PI / 180;
+    var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadius * c;
+}
+
+function validarAntesEnviar(evento) {
+    var habilitarLocalizacao = '{{ env("PONTO_LOCALIZACAO_HABILITAR", "0") }}';
+    if (habilitarLocalizacao !== '1') {
+        return true;
+    }
+
+    if (!localizacaoPermitida || latitudeAtual === '' || longitudeAtual === '') {
+        evento.preventDefault();
+        alert('É necessário permitir o acesso ao GPS para registrar o ponto.');
+        return false;
+    }
+
+    var latitudeConfigurada = parseFloat('{{ env("PONTO_LOCALIZACAO_LATITUDE", "") }}');
+    var longitudeConfigurada = parseFloat('{{ env("PONTO_LOCALIZACAO_LONGITUDE", "") }}');
+    var raioConfigurado = parseFloat('{{ env("PONTO_LOCALIZACAO_RAIO", "50") }}');
+
+    if (isNaN(latitudeConfigurada) || isNaN(longitudeConfigurada) || isNaN(raioConfigurado)) {
+        evento.preventDefault();
+        alert('A configuração de localização está incompleta.');
+        return false;
+    }
+
+    var distancia = calcularDistanciaEmMetros(latitudeAtual, longitudeAtual, latitudeConfigurada, longitudeConfigurada);
+    if (distancia > raioConfigurado) {
+        evento.preventDefault();
+        alert('Você está fora da área permitida para registrar o ponto.');
+        return false;
+    }
+
+    return true;
+}
+
+window.addEventListener('load', function() {
+    preencherLocalizacao();
+    document.getElementById('form-entrada').addEventListener('submit', validarAntesEnviar);
+    document.getElementById('form-saida').addEventListener('submit', validarAntesEnviar);
+});
 </script>
 
 @endsection
