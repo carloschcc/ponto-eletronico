@@ -44,6 +44,7 @@ class PontoController extends PontoEletronicoController {
         $hora_registrada = Request::input('hora');
         $latitude = trim(Request::input('latitude', ''));
         $longitude = trim(Request::input('longitude', ''));
+        $location_source = trim(Request::input('location_source', ''));
 
         $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
         $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
@@ -56,13 +57,51 @@ class PontoController extends PontoEletronicoController {
             return redirect($url_base.'/dashboard');
         }
 
+        $localizacao_ip = null;
+        if ($habilitar_localizacao == '1') {
+            $localizacao_ip = $this->obterLocalizacaoIp();
+        }
+
+        if ($habilitar_localizacao == '1' && $localizacao_ip) {
+            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
+            if ($distancia_ip > $raio_cadastrado) {
+                Session::put('status.msg', 'Sua localização pela rede (IP) está fora da área permitida.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
+        }
+
         if ($habilitar_localizacao == '1' && ($latitude === '' || $longitude === '')) {
-            Session::put('status.msg', 'É necessário permitir o acesso à localização para registrar ponto.');
-            Session::put('status.error_redirect', $url_base.'/dashboard');
-            return redirect($url_base.'/dashboard');
+            if ($localizacao_ip) {
+                $latitude = $localizacao_ip['latitude'];
+                $longitude = $localizacao_ip['longitude'];
+                $location_source = 'ip';
+            } else {
+                Session::put('status.msg', 'É necessário permitir o acesso à localização para registrar ponto.');
+                Session::put('status.error_redirect', $url_base.'/dashboard');
+                return redirect($url_base.'/dashboard');
+            }
         }
 
         if ($habilitar_localizacao == '1') {
+            if ($location_source === 'manual') {
+                $distancia_manual_admin = $this->calcularDistanciaEmMetros($latitude, $longitude, $latitude_cadastrada, $longitude_cadastrada);
+                if ($distancia_manual_admin > 50) {
+                    Session::put('status.msg', 'As coordenadas manuais devem corresponder ao local configurado pelo administrador.');
+                    Session::put('status.error_redirect', $url_base.'/dashboard');
+                    return redirect($url_base.'/dashboard');
+                }
+
+                if ($localizacao_ip) {
+                    $distancia_ip_coord = $this->calcularDistanciaEmMetros($latitude, $longitude, $localizacao_ip['latitude'], $localizacao_ip['longitude']);
+                    if ($distancia_ip_coord > 500) {
+                        Session::put('status.msg', 'As coordenadas manuais não correspondem à sua localização real de IP. Registro negado.');
+                        Session::put('status.error_redirect', $url_base.'/dashboard');
+                        return redirect($url_base.'/dashboard');
+                    }
+                }
+            }
+
             $distancia = $this->calcularDistanciaEmMetros($latitude, $longitude, $latitude_cadastrada, $longitude_cadastrada);
             if ($distancia > $raio_cadastrado) {
                 Session::put('status.msg', 'Você está fora da área permitida para registro de ponto.');
@@ -207,6 +246,75 @@ class PontoController extends PontoEletronicoController {
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function obterIpCliente()
+    {
+        $ip = Request::server('HTTP_X_FORWARDED_FOR');
+        if ($ip) {
+            $ips = explode(',', $ip);
+            $ip = trim(end($ips));
+        }
+
+        if (!$ip) {
+            $ip = Request::server('HTTP_CLIENT_IP');
+        }
+
+        if (!$ip) {
+            $ip = Request::server('REMOTE_ADDR');
+        }
+
+        if (!$ip) {
+            $ip = Request::ip();
+        }
+
+        if (!$ip) {
+            return null;
+        }
+
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return null;
+        }
+
+        return $ip;
+    }
+
+    private function obterLocalizacaoIp()
+    {
+        $ip = $this->obterIpCliente();
+        if (!$ip) {
+            return null;
+        }
+
+        $url = 'https://ipapi.co/' . $ip . '/json/';
+        $resultado = null;
+
+        if (ini_get('allow_url_fopen')) {
+            $resultado = @file_get_contents($url);
+        }
+
+        if (!$resultado && function_exists('curl_version')) {
+            $curl = curl_init($url);
+            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_TIMEOUT, 5);
+            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+            $resultado = curl_exec($curl);
+            curl_close($curl);
+        }
+
+        if (!$resultado) {
+            return null;
+        }
+
+        $dados = json_decode($resultado, true);
+        if (!is_array($dados) || empty($dados['latitude']) || empty($dados['longitude'])) {
+            return null;
+        }
+
+        return [
+            'latitude' => $dados['latitude'],
+            'longitude' => $dados['longitude'],
+        ];
     }
 
     public function registrar(){

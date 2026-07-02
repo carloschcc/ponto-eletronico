@@ -77,6 +77,7 @@ $hora = Date('H:i');
                           <input type="hidden" name="hora" value="<?=$hora?>">
                           <input type="hidden" name="latitude" id="latitude-entrada" value="">
                           <input type="hidden" name="longitude" id="longitude-entrada" value="">
+                          <input type="hidden" name="location_source" id="location-source-entrada" value="">
                           <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
                       </form>
                   </div>
@@ -87,6 +88,7 @@ $hora = Date('H:i');
                           <input type="hidden" name="hora" value="<?=$hora?>">
                           <input type="hidden" name="latitude" id="latitude-saida" value="">
                           <input type="hidden" name="longitude" id="longitude-saida" value="">
+                          <input type="hidden" name="location_source" id="location-source-saida" value="">
                           <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
                       </form>
                   </div>
@@ -183,6 +185,7 @@ $hora = Date('H:i');
 
 <script>
 var localizacaoDetectada = false;
+var locationAttemptFinished = false;
 var realLatitude = null;
 var realLongitude = null;
 var configLatitude = '{{ $latitudeConfigurada }}';
@@ -198,7 +201,7 @@ function atualizarStatus(mensagem, classe) {
 
 function atualizarBotoes() {
     var entradas = document.querySelectorAll('#form-entrada input[type=submit], #form-saida input[type=submit]');
-    var bloqueado = locationRequired && !localizacaoDetectada;
+    var bloqueado = locationRequired && (!localizacaoDetectada || !locationAttemptFinished);
     entradas.forEach(function(botao) {
         botao.disabled = bloqueado;
         botao.style.opacity = bloqueado ? '0.6' : '1';
@@ -248,6 +251,13 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
     if (origem === 'GPS' || origem === 'IP') {
         realLatitude = lat;
         realLongitude = lon;
+        locationAttemptFinished = true;
+        if (document.getElementById('location-source-entrada')) {
+            document.getElementById('location-source-entrada').value = origem;
+        }
+        if (document.getElementById('location-source-saida')) {
+            document.getElementById('location-source-saida').value = origem;
+        }
     }
 
     if (marcarCapturada) {
@@ -294,6 +304,10 @@ function obterLocalizacaoPorIP() {
         .catch(function(err) {
             console.warn('Erro IP geolocation:', err);
             atualizarStatus('Falha na localização por IP. Use coordenadas manuais.', 'alert-danger');
+        })
+        .then(function() {
+            locationAttemptFinished = true;
+            atualizarBotoes();
         });
 }
 
@@ -340,8 +354,10 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
         if (configLatitude && configLongitude) {
             document.getElementById('latitude-entrada').value = manualLat;
             document.getElementById('longitude-entrada').value = manualLon;
+            document.getElementById('location-source-entrada').value = 'manual';
             document.getElementById('latitude-saida').value = manualLat;
             document.getElementById('longitude-saida').value = manualLon;
+            document.getElementById('location-source-saida').value = 'manual';
             localizacaoDetectada = true;
             atualizarStatus('Coordenadas manuais carregadas e usadas para registrar ponto.', 'alert-success');
         }
@@ -354,6 +370,27 @@ document.getElementById('btn-set-coords').addEventListener('click', function() {
 window.addEventListener('load', function() {
     atualizarBotoes();
     tentarCapturarGPS();
+    ['form-entrada', 'form-saida'].forEach(function(formId) {
+        var form = document.getElementById(formId);
+        if (!form) return;
+        form.addEventListener('submit', function(event) {
+            if (!locationRequired) return;
+            if (realLatitude && realLongitude) {
+                var hiddenLat = form.querySelector('input[name="latitude"]').value;
+                var hiddenLon = form.querySelector('input[name="longitude"]').value;
+                if (hiddenLat !== String(realLatitude) || hiddenLon !== String(realLongitude)) {
+                    alert('A localização real deve ser usada para registrar ponto. Atualize com GPS/IP antes de enviar.');
+                    event.preventDefault();
+                    return false;
+                }
+            }
+            if (!locationAttemptFinished && locationRequired) {
+                alert('Aguardando tentativa de localização real. Por favor, aguarde ou use coordenadas manuais após falha.');
+                event.preventDefault();
+                return false;
+            }
+        });
+    });
 });
 </script>
 
