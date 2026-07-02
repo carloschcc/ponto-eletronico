@@ -188,6 +188,7 @@ var localizacaoDetectada = false;
 var locationAttemptFinished = false;
 var realLatitude = null;
 var realLongitude = null;
+var realLocationValid = true;
 var configLatitude = '{{ $latitudeConfigurada }}';
 var configLongitude = '{{ $longitudeConfigurada }}';
 var configRaio = {{ $raioConfigurado ?: 50 }};
@@ -201,7 +202,7 @@ function atualizarStatus(mensagem, classe) {
 
 function atualizarBotoes() {
     var entradas = document.querySelectorAll('#form-entrada input[type=submit], #form-saida input[type=submit]');
-    var bloqueado = locationRequired && (!localizacaoDetectada || !locationAttemptFinished);
+    var bloqueado = locationRequired && (!localizacaoDetectada || !locationAttemptFinished || !realLocationValid);
     entradas.forEach(function(botao) {
         botao.disabled = bloqueado;
         botao.style.opacity = bloqueado ? '0.6' : '1';
@@ -225,11 +226,13 @@ function validarLocalizacaoReal(lat, lon, origem) {
     }
     var distancia = calcularDistanciaEmMetros(parseFloat(lat), parseFloat(lon), parseFloat(configLatitude), parseFloat(configLongitude));
     if (distancia > configRaio) {
+        realLocationValid = false;
         atualizarStatus('Localização real (' + origem + ') está fora do raio configurado (' + Math.round(distancia) + 'm). Registro negado.', 'alert-danger');
         localizacaoDetectada = false;
         atualizarBotoes();
         return false;
     }
+    realLocationValid = true;
     return true;
 }
 
@@ -253,10 +256,10 @@ function preencherLocalizacao(lat, lon, origem, marcarCapturada = true) {
         realLongitude = lon;
         locationAttemptFinished = true;
         if (document.getElementById('location-source-entrada')) {
-            document.getElementById('location-source-entrada').value = origem;
+            document.getElementById('location-source-entrada').value = origem.toLowerCase();
         }
         if (document.getElementById('location-source-saida')) {
-            document.getElementById('location-source-saida').value = origem;
+            document.getElementById('location-source-saida').value = origem.toLowerCase();
         }
     }
 
@@ -318,6 +321,10 @@ document.getElementById('btn-detect-location').addEventListener('click', functio
 document.getElementById('btn-set-coords').addEventListener('click', function() {
     if (locationRequired && !locationAttemptFinished && !realLatitude && !realLongitude) {
         alert('Aguardando tentativa de localização real via GPS/IP. Por favor, aguarde alguns segundos antes de usar coordenadas manuais.');
+        return;
+    }
+    if (locationRequired && realLatitude && realLongitude && !realLocationValid) {
+        alert('A localização real está inválida para registro. As coordenadas manuais não podem ser usadas para substituir.');
         return;
     }
 
@@ -385,6 +392,11 @@ window.addEventListener('load', function() {
                 var hiddenLon = form.querySelector('input[name="longitude"]').value;
                 if (hiddenLat !== String(realLatitude) || hiddenLon !== String(realLongitude)) {
                     alert('A localização real deve ser usada para registrar ponto. Atualize com GPS/IP antes de enviar.');
+                    event.preventDefault();
+                    return false;
+                }
+                if (!realLocationValid) {
+                    alert('Sua localização real está fora da área permitida. Registro negado.');
                     event.preventDefault();
                     return false;
                 }
