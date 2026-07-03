@@ -2,6 +2,8 @@
 
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use App\Configuracao;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
@@ -24,6 +26,8 @@ class PontoController extends PontoEletronicoController {
     public function registrar_validando(){
         
         $url_base = getenv('APP_URL');
+
+        $this->garantirColunaObservacoes();
         
         $usuario_id = Session::get('login.ponto.usuario_id');
         
@@ -218,9 +222,20 @@ class PontoController extends PontoEletronicoController {
         return $observacoes_registro;
     }
 
+    private function garantirColunaObservacoes()
+    {
+        if (!Schema::hasColumn('ponto', 'observacoes')) {
+            Schema::table('ponto', function (Blueprint $table) {
+                $table->text('observacoes')->nullable()->after('status');
+            });
+        }
+    }
+
     public function registrar(){
         
         $url_base = getenv('APP_URL');
+        
+        $this->garantirColunaObservacoes();
         
         $usuario_id = Session::get('login.ponto.usuario_id');
         
