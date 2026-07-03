@@ -396,4 +396,62 @@ class AcompanhamentoController extends PontoEletronicoController {
 
     }
 
+    public function geolocalizacao($usuario_id, $inicio, $fim){
+
+        $usuario_admin = Session::get('login.ponto.painel.admin');
+
+        if($usuario_admin != 1):
+            Session::put('status.msg', 'Acesso não permitido.');
+            return redirect(getenv('APP_URL').'/painel/acompanhamento');
+        endif;
+
+        $data = array();
+
+        $semExcluidos = function($q){ $q->whereNotNull('entrada')->orWhereNotNull('saida'); };
+
+        if($usuario_id == 'all'):
+            $ids_ativos = Usuario::where('ativo', 1)->pluck('id');
+            $registros = Ponto::whereIn('usuario_id', $ids_ativos)
+                ->where('data', '>=', $inicio)
+                ->where('data', '<=', $fim)
+                ->where($semExcluidos)
+                ->with('usuario')
+                ->orderBy('usuario_id', 'ASC')
+                ->orderBy('data', 'ASC')
+                ->orderBy('entrada', 'ASC')
+                ->get();
+        else:
+            $registros = Ponto::where(['usuario_id' => $usuario_id])
+                ->where('data', '>=', $inicio)
+                ->where('data', '<=', $fim)
+                ->where($semExcluidos)
+                ->with('usuario')
+                ->orderBy('data', 'ASC')
+                ->orderBy('entrada', 'ASC')
+                ->get();
+        endif;
+
+        foreach($registros as $registro):
+            if($registro->usuario):
+                $data[$registro->usuario->nome][] = $registro;
+            endif;
+        endforeach;
+
+        ksort($data);
+
+        $arr = explode("-", $inicio);
+        $data_inicio_fmt = $arr[2].'/'.$arr[1].'/'.$arr[0];
+
+        $arr = explode("-", $fim);
+        $data_fim_fmt = $arr[2].'/'.$arr[1].'/'.$arr[0];
+
+        return view('pontoeletronico/acompanhamento/geolocalizacao')
+            ->with('data', $data)
+            ->with('data_inicio', $data_inicio_fmt)
+            ->with('data_fim', $data_fim_fmt)
+            ->with('app_name', getenv('APP_NAME'))
+            ->with('todos', $usuario_id == 'all');
+
+    }
+
 }

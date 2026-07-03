@@ -149,6 +149,11 @@ $admin = Session::get('login.ponto.painel.admin');
                        class="btn btn-sm btn-default">
                         <i class="fa fa-file-text-o"></i> Exportar TXT — Todos
                     </a>
+                    <a href="/painel/geolocalizacao/all/{{ $data_inicio }}/{{ $data_fim }}"
+                       target="_blank"
+                       class="btn btn-sm btn-info">
+                        <i class="fa fa-map-marker"></i> Geolocalização — Todos
+                    </a>
                 </div>
             </div>
             @else
@@ -196,6 +201,7 @@ $admin = Session::get('login.ponto.painel.admin');
                                     <a href="/painel/espelho-v2/{{ $uid }}/{{ $data_inicio }}/{{ $data_fim }}" target="_blank" class="btn btn-xs btn-warning"><i class="fa fa-file-text"></i> Espelho V2</a>
                                     <a href="/painel/excel-acompanhamento/{{ $uid }}/{{ $data_inicio }}/{{ $data_fim }}" class="btn btn-xs btn-default"><i class="fa fa-file-excel-o"></i> Excel</a>
                                     <a href="/painel/export-txt/{{ $uid }}/{{ $data_inicio }}/{{ $data_fim }}" class="btn btn-xs btn-default"><i class="fa fa-file-text-o"></i> TXT</a>
+                                    <a href="/painel/geolocalizacao/{{ $uid }}/{{ $data_inicio }}/{{ $data_fim }}" target="_blank" class="btn btn-xs btn-info"><i class="fa fa-map-marker"></i> Geolocalização</a>
                                 </div>
                             </div>
                             <div id="{{ $registro_nome }}" class="panel-collapse collapse" aria-expanded="false" style="height: 0px;">

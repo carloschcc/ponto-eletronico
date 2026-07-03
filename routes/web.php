@@ -56,6 +56,7 @@ Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function(
   Route::get('/export-txt/{usuario}/{inicio}/{fim}', 'AcompanhamentoController@exportarTxt');
   Route::get('/relatorio/{usuario_id}/{inicio}/{fim}', 'AcompanhamentoController@relatorio');
   Route::get('/espelho-v2/{usuario_id}/{inicio}/{fim}', 'AcompanhamentoController@espelhoV2');
+  Route::get('/geolocalizacao/{usuario_id}/{inicio}/{fim}', 'AcompanhamentoController@geolocalizacao');
 
   Route::post('/feriado/salvar', 'PeriodoController@salvarFeriado');
   Route::get('/feriado/excluir/{id}', 'PeriodoController@excluirFeriado');

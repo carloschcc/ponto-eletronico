@@ -110,7 +110,7 @@ $hora = Date('H:i');
                     </div>
                   @endif
                   <div class="box box-default" style="margin-top:15px; padding:15px; background:#f5f5f5;">
-                    <p style="margin:0; font-size:14px;"><strong>IP atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
+                    <p style="margin:0; font-size:14px;"><strong>IP de registro atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
                     @if($localizacaoIp && $localizacaoIp['latitude'] && $localizacaoIp['longitude'])
                       <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong> {{ $localizacaoIp['latitude'] }}, {{ $localizacaoIp['longitude'] }}</p>
                     @endif
@@ -193,7 +193,7 @@ window.addEventListener('load', function() {
     var btnDetect = document.getElementById('btn-detect-location');
     if (btnDetect) {
         btnDetect.addEventListener('click', function() {
-            alert('A validação agora usa somente a localização por IP do usuário. O botão está aqui apenas para disparar a tentativa de verificação.');
+            window.location.reload();
         });
     }
 });
