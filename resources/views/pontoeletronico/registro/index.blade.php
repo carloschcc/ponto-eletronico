@@ -75,6 +75,9 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="entrada">
                           <input type="hidden" name="hora" value="<?=$hora?>">
+                          <input type="hidden" name="gps_latitude" class="campo-gps-latitude">
+                          <input type="hidden" name="gps_longitude" class="campo-gps-longitude">
+                          <input type="hidden" name="gps_precisao" class="campo-gps-precisao">
                           <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;" {{ isset($ipPermitido) && !$ipPermitido ? 'disabled' : '' }}>
                       </form>
                   </div>
@@ -83,6 +86,9 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="saida">
                           <input type="hidden" name="hora" value="<?=$hora?>">
+                          <input type="hidden" name="gps_latitude" class="campo-gps-latitude">
+                          <input type="hidden" name="gps_longitude" class="campo-gps-longitude">
+                          <input type="hidden" name="gps_precisao" class="campo-gps-precisao">
                           <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;" {{ isset($ipPermitido) && !$ipPermitido ? 'disabled' : '' }}>
                       </form>
                   </div>
@@ -103,6 +109,9 @@ $hora = Date('H:i');
                     O registro será validado pelo IP do usuário. Coordenadas manuais não serão usadas.
                   </p>
                   @endif
+                  <p id="status-gps" class="text-muted" style="font-size:12px; margin-top:8px;">
+                    <i class="fa fa-crosshairs"></i> Localização GPS do dispositivo: <span id="status-gps-texto">verificando...</span>
+                  </p>
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
                   @if(isset($ipPermitido) && !$ipPermitido)
                     <div class="alert alert-danger" style="margin-top:15px; padding:10px;">
@@ -147,7 +156,7 @@ $hora = Date('H:i');
                                             IP: {{ $registro->entrada_ip }}<br>
                                         @endif
                                         @if($registro->entrada_latitude && $registro->entrada_longitude)
-                                            Localização: {{ $registro->entrada_latitude }}, {{ $registro->entrada_longitude }}
+                                            Localização{{ ($registro->entrada_geo_fonte ?? null) === 'gps' ? ' (GPS)' : ' (por IP)' }}: {{ $registro->entrada_latitude }}, {{ $registro->entrada_longitude }}
                                         @endif
                                     </small>
                                 </td>
@@ -158,7 +167,7 @@ $hora = Date('H:i');
                                             IP: {{ $registro->saida_ip }}<br>
                                         @endif
                                         @if($registro->saida_latitude && $registro->saida_longitude)
-                                            Localização: {{ $registro->saida_latitude }}, {{ $registro->saida_longitude }}
+                                            Localização{{ ($registro->saida_geo_fonte ?? null) === 'gps' ? ' (GPS)' : ' (por IP)' }}: {{ $registro->saida_latitude }}, {{ $registro->saida_longitude }}
                                         @endif
                                     </small>
                                 </td>
@@ -196,6 +205,71 @@ window.addEventListener('load', function() {
             window.location.reload();
         });
     }
+
+    var statusTexto = document.getElementById('status-gps-texto');
+    var gpsCoords = null; // { latitude, longitude, precisao } quando capturado com sucesso
+
+    function atualizarStatus(texto) {
+        if (statusTexto) {
+            statusTexto.textContent = texto;
+        }
+    }
+
+    function contextoSeguro() {
+        // A Geolocation API só funciona em HTTPS (ou localhost). Em HTTP puro o
+        // navegador nem chega a pedir permissão — cai direto para o IP.
+        return window.isSecureContext === true || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    }
+
+    function capturarGps() {
+        if (!navigator.geolocation) {
+            atualizarStatus('não suportada neste navegador — usando localização por IP.');
+            return;
+        }
+
+        if (!contextoSeguro()) {
+            atualizarStatus('indisponível neste protocolo (HTTP) — o navegador exige HTTPS para GPS. Usando localização por IP.');
+            return;
+        }
+
+        atualizarStatus('solicitando permissão...');
+
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            gpsCoords = {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                precisao: pos.coords.accuracy
+            };
+            atualizarStatus('capturada (precisão de ' + Math.round(pos.coords.accuracy) + 'm).');
+        }, function(erro) {
+            var motivo = 'indisponível';
+            if (erro && erro.code === erro.PERMISSION_DENIED) motivo = 'permissão negada pelo usuário';
+            else if (erro && erro.code === erro.POSITION_UNAVAILABLE) motivo = 'posição indisponível';
+            else if (erro && erro.code === erro.TIMEOUT) motivo = 'tempo esgotado';
+            atualizarStatus(motivo + ' — usando localização por IP.');
+        }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+    }
+
+    function prepararFormulario(form) {
+        if (!form) return;
+        form.addEventListener('submit', function(ev) {
+            if (form.dataset.gpsPreenchido === '1') {
+                return; // segunda passagem: já preenchido, deixa submeter
+            }
+
+            if (gpsCoords) {
+                form.querySelector('.campo-gps-latitude').value = gpsCoords.latitude;
+                form.querySelector('.campo-gps-longitude').value = gpsCoords.longitude;
+                form.querySelector('.campo-gps-precisao').value = gpsCoords.precisao;
+            }
+            // Sem GPS disponível: envia os campos vazios e o backend usa o IP como fallback.
+            form.dataset.gpsPreenchido = '1';
+        });
+    }
+
+    capturarGps();
+    prepararFormulario(document.getElementById('form-entrada'));
+    prepararFormulario(document.getElementById('form-saida'));
 });
 </script>
 

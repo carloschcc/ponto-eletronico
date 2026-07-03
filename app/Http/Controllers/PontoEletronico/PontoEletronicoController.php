@@ -183,9 +183,46 @@ abstract class PontoEletronicoController extends Controller
      * trocar o "." por "," em PT-BR, corrompendo o valor salvo). 7 casas decimais
      * cobre toda a precisão que os provedores de geolocalização por IP oferecem.
      */
-    private function formatarCoordenada($valor)
+    protected function formatarCoordenada($valor)
     {
         return sprintf('%.7F', (float) $valor);
+    }
+
+    /**
+     * Valida e formata a latitude/longitude reais do dispositivo, enviadas pelo
+     * navegador via HTML5 Geolocation (muito mais precisas que a estimativa por
+     * IP). Retorna null se os valores não vierem, forem inválidos ou fora do
+     * intervalo geográfico possível — nesse caso o chamador deve cair para a
+     * localização por IP.
+     */
+    protected function obterLocalizacaoGpsRequest($latitude, $longitude, $precisao = null)
+    {
+        if ($latitude === null || $longitude === null || $latitude === '' || $longitude === '') {
+            return null;
+        }
+
+        if (!is_numeric($latitude) || !is_numeric($longitude)) {
+            return null;
+        }
+
+        $lat = (float) $latitude;
+        $lon = (float) $longitude;
+
+        if ($lat < -90 || $lat > 90 || $lon < -180 || $lon > 180) {
+            return null;
+        }
+
+        $resultado = [
+            'latitude' => $this->formatarCoordenada($lat),
+            'longitude' => $this->formatarCoordenada($lon),
+            'precisao' => null,
+        ];
+
+        if ($precisao !== null && $precisao !== '' && is_numeric($precisao)) {
+            $resultado['precisao'] = (int) round((float) $precisao);
+        }
+
+        return $resultado;
     }
 
     protected function parseIpsPermitidos($valor)

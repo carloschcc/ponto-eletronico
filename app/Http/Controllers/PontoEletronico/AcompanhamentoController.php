@@ -485,9 +485,12 @@ class AcompanhamentoController extends PontoEletronicoController {
             if (filter_var($ip, FILTER_VALIDATE_IP)) {
                 $registro->entrada_ip = $ip;
             }
-            if (preg_match('/Localiza[çc][ãa]o IP:\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $entradaSeg, $ml)) {
-                $registro->entrada_latitude = trim($ml[1]);
-                $registro->entrada_longitude = trim($ml[2]);
+            if (preg_match('/Localiza[çc][ãa]o (GPS|IP):\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $entradaSeg, $ml)) {
+                $registro->entrada_latitude = trim($ml[2]);
+                $registro->entrada_longitude = trim($ml[3]);
+                if (empty($registro->entrada_geo_fonte)) {
+                    $registro->entrada_geo_fonte = strtoupper($ml[1]) === 'GPS' ? 'gps' : 'ip';
+                }
             }
         }
 
@@ -496,9 +499,12 @@ class AcompanhamentoController extends PontoEletronicoController {
             if (filter_var($ip, FILTER_VALIDATE_IP)) {
                 $registro->saida_ip = $ip;
             }
-            if (preg_match('/Localiza[çc][ãa]o IP:\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $saidaSeg, $ml)) {
-                $registro->saida_latitude = trim($ml[1]);
-                $registro->saida_longitude = trim($ml[2]);
+            if (preg_match('/Localiza[çc][ãa]o (GPS|IP):\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $saidaSeg, $ml)) {
+                $registro->saida_latitude = trim($ml[2]);
+                $registro->saida_longitude = trim($ml[3]);
+                if (empty($registro->saida_geo_fonte)) {
+                    $registro->saida_geo_fonte = strtoupper($ml[1]) === 'GPS' ? 'gps' : 'ip';
+                }
             }
         }
     }

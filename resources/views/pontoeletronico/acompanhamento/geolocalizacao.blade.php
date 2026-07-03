@@ -136,6 +136,7 @@ foreach ($registros as $reg) {
             'ip'        => $reg->entrada_ip ?? '—',
             'latitude'  => $reg->entrada_latitude ?? '—',
             'longitude' => $reg->entrada_longitude ?? '—',
+            'fonte'     => ($reg->entrada_geo_fonte ?? null) === 'gps' ? 'GPS' : (!empty($reg->entrada_latitude) ? 'IP' : '—'),
             'mapa_url'  => (!empty($reg->entrada_latitude) && !empty($reg->entrada_longitude))
                 ? 'https://www.openstreetmap.org/?mlat=' . $reg->entrada_latitude . '&mlon=' . $reg->entrada_longitude . '#map=16/' . $reg->entrada_latitude . '/' . $reg->entrada_longitude
                 : null,
@@ -150,6 +151,7 @@ foreach ($registros as $reg) {
             'ip'        => $reg->saida_ip ?? '—',
             'latitude'  => $reg->saida_latitude ?? '—',
             'longitude' => $reg->saida_longitude ?? '—',
+            'fonte'     => ($reg->saida_geo_fonte ?? null) === 'gps' ? 'GPS' : (!empty($reg->saida_latitude) ? 'IP' : '—'),
             'mapa_url'  => (!empty($reg->saida_latitude) && !empty($reg->saida_longitude))
                 ? 'https://www.openstreetmap.org/?mlat=' . $reg->saida_latitude . '&mlon=' . $reg->saida_longitude . '#map=16/' . $reg->saida_latitude . '/' . $reg->saida_longitude
                 : null,
@@ -190,13 +192,14 @@ $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
     <table>
         <thead>
             <tr>
-                <th width="10%">Data</th>
-                <th width="8%">Tipo</th>
-                <th width="7%">Hora</th>
-                <th width="16%">IP de Registro</th>
-                <th width="20%">Latitude</th>
-                <th width="20%">Longitude</th>
-                <th width="19%" class="no-print-col">Mapa</th>
+                <th width="9%">Data</th>
+                <th width="7%">Tipo</th>
+                <th width="6%">Hora</th>
+                <th width="14%">IP de Registro</th>
+                <th width="17%">Latitude</th>
+                <th width="17%">Longitude</th>
+                <th width="8%">Fonte</th>
+                <th width="22%" class="no-print-col">Mapa</th>
             </tr>
         </thead>
         <tbody>
@@ -208,6 +211,7 @@ $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
                 <td class="col-center">{{ $row['ip'] }}</td>
                 <td class="col-center">{{ $row['latitude'] }}</td>
                 <td class="col-center">{{ $row['longitude'] }}</td>
+                <td class="col-center">{{ $row['fonte'] }}</td>
                 <td class="col-center no-print-col">
                     @if($row['mapa_url'])
                         <a href="{{ $row['mapa_url'] }}" target="_blank">Ver no mapa</a>
@@ -223,6 +227,8 @@ $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
     <div class="legenda">
         <span><strong>Legenda:</strong></span>
         <span>— = sem informação disponível</span>
+        <span>Fonte GPS = coordenada real do dispositivo (alta precisão)</span>
+        <span>Fonte IP = estimativa pelo provedor de internet (precisão de cidade/região)</span>
     </div>
 
 </div>
