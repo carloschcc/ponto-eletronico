@@ -156,11 +156,6 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
-                $ponto->saida_ip = $registro_ip;
-                if ($localizacao_ip) {
-                    $ponto->saida_latitude = $localizacao_ip['latitude'];
-                    $ponto->saida_longitude = $localizacao_ip['longitude'];
-                }
                 $ponto->observacoes = 'Saída - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
@@ -268,11 +263,6 @@ class PontoController extends PontoEletronicoController {
             $ponto->data = $hoje;
             $ponto->entrada = $hora_registrada;
             $ponto->entrada_status = 0;
-            $ponto->entrada_ip = $registro_ip;
-            if ($localizacao_ip) {
-                $ponto->entrada_latitude = $localizacao_ip['latitude'];
-                $ponto->entrada_longitude = $localizacao_ip['longitude'];
-            }
             $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
             $ponto->status = 0;
             $ponto->save();
@@ -296,11 +286,6 @@ class PontoController extends PontoEletronicoController {
             $ponto->data = $hoje;
             $ponto->saida = $hora_registrada;
             $ponto->saida_status = 0;
-            $ponto->saida_ip = $registro_ip;
-            if ($localizacao_ip) {
-                $ponto->saida_latitude = $localizacao_ip['latitude'];
-                $ponto->saida_longitude = $localizacao_ip['longitude'];
-            }
             $ponto->observacoes = 'Saída - ' . $observacoes_registro;
             $ponto->status = 0;
             $ponto->save();    
