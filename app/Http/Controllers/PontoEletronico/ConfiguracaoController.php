@@ -33,7 +33,8 @@ class ConfiguracaoController extends PontoEletronicoController {
         return view('pontoeletronico/configuracao/index', compact(
             'logo_url', 'logo_espelho_url', 'logo_espelho_existe',
             'timezone_atual', 'hora_atual', 'configuracao_localizacao',
-            'localizacao_latitude', 'localizacao_longitude', 'localizacao_raio'
+            'localizacao_latitude', 'localizacao_longitude', 'localizacao_raio',
+            'ips_permitidos'
         ));
     }
 
