@@ -75,6 +75,9 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                $ponto->entrada_latitude = $localizacao_ip['latitude'] ?? null;
+                $ponto->entrada_longitude = $localizacao_ip['longitude'] ?? null;
                 $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
@@ -91,6 +94,9 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                $ponto->entrada_latitude = $localizacao_ip['latitude'] ?? null;
+                $ponto->entrada_longitude = $localizacao_ip['longitude'] ?? null;
                 $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
@@ -117,6 +123,9 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->entrada = $hora_registrada;
                 $ponto->entrada_status = 0;
+                $ponto->entrada_ip = $registro_ip;
+                $ponto->entrada_latitude = $localizacao_ip['latitude'] ?? null;
+                $ponto->entrada_longitude = $localizacao_ip['longitude'] ?? null;
                 $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
@@ -151,6 +160,9 @@ class PontoController extends PontoEletronicoController {
                 $ponto->data = $hoje;
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
+                $ponto->saida_ip = $registro_ip;
+                $ponto->saida_latitude = $localizacao_ip['latitude'] ?? null;
+                $ponto->saida_longitude = $localizacao_ip['longitude'] ?? null;
                 $ponto->observacoes = 'Saída - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
@@ -165,6 +177,9 @@ class PontoController extends PontoEletronicoController {
                 $ponto = Ponto::find($ultimo_registro->id);
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
+                $ponto->saida_ip = $registro_ip;
+                $ponto->saida_latitude = $localizacao_ip['latitude'] ?? null;
+                $ponto->saida_longitude = $localizacao_ip['longitude'] ?? null;
                 $saida_observacoes = 'Saída - ' . $observacoes_registro;
                 $ponto->observacoes = trim(($ponto->observacoes ?: '') . ' | ' . $saida_observacoes, ' |');
                 $ponto->save();
@@ -267,6 +282,9 @@ class PontoController extends PontoEletronicoController {
             $ponto->data = $hoje;
             $ponto->entrada = $hora_registrada;
             $ponto->entrada_status = 0;
+            $ponto->entrada_ip = $registro_ip;
+            $ponto->entrada_latitude = $localizacao_ip['latitude'] ?? null;
+            $ponto->entrada_longitude = $localizacao_ip['longitude'] ?? null;
             $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
             $ponto->status = 0;
             $ponto->save();
@@ -290,9 +308,12 @@ class PontoController extends PontoEletronicoController {
             $ponto->data = $hoje;
             $ponto->saida = $hora_registrada;
             $ponto->saida_status = 0;
+            $ponto->saida_ip = $registro_ip;
+            $ponto->saida_latitude = $localizacao_ip['latitude'] ?? null;
+            $ponto->saida_longitude = $localizacao_ip['longitude'] ?? null;
             $ponto->observacoes = 'Saída - ' . $observacoes_registro;
             $ponto->status = 0;
-            $ponto->save();    
+            $ponto->save();
             
             Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
             Session::put('status.error_redirect', $url_base.'/sair');
