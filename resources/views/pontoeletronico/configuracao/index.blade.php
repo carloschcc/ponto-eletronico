@@ -94,6 +94,13 @@
               <label>Raio permitido (metros)</label>
               <input type="number" name="raio" class="form-control" min="1" value="{{ $localizacao_raio }}" placeholder="50">
             </div>
+            <div class="form-group">
+              <label>IPs permitidos</label>
+              <textarea name="ips_permitidos" class="form-control" rows="4" placeholder="192.168.0.10\n10.0.0.0/24\n172.16.1.5">{{ $ips_permitidos }}</textarea>
+              <p class="text-muted" style="font-size:11px; margin-top:6px;">
+                Informe um IP por linha, ou CIDR para um intervalo. Use vírgula, ponto e vírgula ou quebra de linha como separador.
+              </p>
+            </div>
             <button type="submit" class="btn btn-info btn-sm"><i class="fa fa-save"></i> Salvar</button>
           </form>
           <p class="text-muted" style="margin-top:12px; font-size:12px;">

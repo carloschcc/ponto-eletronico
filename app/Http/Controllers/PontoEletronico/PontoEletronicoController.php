@@ -118,4 +118,77 @@ abstract class PontoEletronicoController extends Controller
         ];
     }
 
+    protected function parseIpsPermitidos($valor)
+    {
+        $entradas = preg_split('/[\r\n,;]+/', (string) $valor);
+        $ips = [];
+
+        foreach ($entradas as $entrada) {
+            $entrada = trim($entrada);
+            if ($entrada === '') {
+                continue;
+            }
+
+            if (strpos($entrada, '/') !== false) {
+                $ips[] = $entrada;
+                continue;
+            }
+
+            if (filter_var($entrada, FILTER_VALIDATE_IP)) {
+                $ips[] = $entrada;
+            }
+        }
+
+        return $ips;
+    }
+
+    protected function ipEmCidr($ip, $cidr)
+    {
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        list($range, $netmask) = explode('/', $cidr, 2);
+        if (!filter_var($range, FILTER_VALIDATE_IP) || !is_numeric($netmask)) {
+            return false;
+        }
+
+        $netmask = (int) $netmask;
+        if ($netmask < 0 || $netmask > 32) {
+            return false;
+        }
+
+        $ipLong = ip2long($ip);
+        $rangeLong = ip2long($range);
+        $mask = -1 << (32 - $netmask);
+
+        return ($ipLong & $mask) === ($rangeLong & $mask);
+    }
+
+    protected function ipPermitido($ip, array $permitidos)
+    {
+        if (empty($permitidos)) {
+            return true;
+        }
+
+        if (!$ip || !filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+
+        foreach ($permitidos as $entrada) {
+            if (strpos($entrada, '/') !== false) {
+                if ($this->ipEmCidr($ip, $entrada)) {
+                    return true;
+                }
+                continue;
+            }
+
+            if ($ip === $entrada) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }

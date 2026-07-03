@@ -28,6 +28,7 @@ class ConfiguracaoController extends PontoEletronicoController {
         $localizacao_latitude = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
         $localizacao_longitude = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
         $localizacao_raio = Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
+        $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         return view('pontoeletronico/configuracao/index', compact(
             'logo_url', 'logo_espelho_url', 'logo_espelho_existe',
@@ -52,8 +53,9 @@ class ConfiguracaoController extends PontoEletronicoController {
         $this->persistirValorEnv('PONTO_LOCALIZACAO_LATITUDE', $latitude);
         $this->persistirValorEnv('PONTO_LOCALIZACAO_LONGITUDE', $longitude);
         $this->persistirValorEnv('PONTO_LOCALIZACAO_RAIO', $raio);
+        $this->persistirValorEnv('PONTO_IPS_PERMITIDOS', trim(Request::input('ips_permitidos', '')));
 
-        Session::put('status.msg', 'Configuração de localização atualizada com sucesso!');
+        Session::put('status.msg', 'Configuração de localização e IPs permitidos atualizada com sucesso!');
         return redirect(getenv('APP_URL').'/painel/configuracao');
     }
 

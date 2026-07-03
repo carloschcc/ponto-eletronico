@@ -51,11 +51,17 @@ class PontoController extends PontoEletronicoController {
         $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
         $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
         $raio_cadastrado = (float) Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
+        $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         $registro_ip = $this->obterIpCliente();
         $localizacao_ip = null;
         if ($habilitar_localizacao == '1') {
             $localizacao_ip = $this->obterLocalizacaoIp();
+        }
+
+        if (!$this->ipPermitido($registro_ip, $this->parseIpsPermitidos($ips_permitidos))) {
+            Session::put('status.msg', 'Seu IP não está na lista de IPs permitidos para registrar ponto.');
+            return redirect(getenv('APP_URL').'/dashboard');
         }
 
         $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);

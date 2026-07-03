@@ -75,7 +75,7 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="entrada">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;">
+                          <input type='submit' value='ENTRADA' class="btn btn-success" style="width: 100%;" {{ isset($ipPermitido) && !$ipPermitido ? 'disabled' : '' }}>
                       </form>
                   </div>
                   <div class='col-md-6 col-xs-6'>
@@ -83,7 +83,7 @@ $hora = Date('H:i');
                           {{ csrf_field() }}
                           <input type="hidden" name="area" value="saida">
                           <input type="hidden" name="hora" value="<?=$hora?>">
-                          <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;">
+                          <input type='submit' value='SAÍDA' class="btn btn-danger" style="width: 100%;" {{ isset($ipPermitido) && !$ipPermitido ? 'disabled' : '' }}>
                       </form>
                   </div>
               </div>
@@ -104,6 +104,11 @@ $hora = Date('H:i');
                   </p>
                   @endif
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
+                  @if(isset($ipPermitido) && !$ipPermitido)
+                    <div class="alert alert-danger" style="margin-top:15px; padding:10px;">
+                      Seu IP atual não está na lista de IPs permitidos para bater ponto.
+                    </div>
+                  @endif
                   <div class="box box-default" style="margin-top:15px; padding:15px; background:#f5f5f5;">
                     <p style="margin:0; font-size:14px;"><strong>IP atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
                     <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong>

@@ -33,6 +33,7 @@ class DashboardController extends PontoEletronicoController {
         $latitudeConfigurada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
         $longitudeConfigurada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
         $raioConfigurado = Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
+        $ipsPermitidosConfigurados = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         $registroIp = $this->obterIpCliente();
         $localizacaoIp = null;
@@ -40,7 +41,18 @@ class DashboardController extends PontoEletronicoController {
             $localizacaoIp = $this->obterLocalizacaoIp();
         }
 
+        $ipPermitido = $this->ipPermitido($registroIp, $this->parseIpsPermitidos($ipsPermitidosConfigurados));
+
         return view('pontoeletronico/registro/index')
+            ->with('usuario', $usuario)
+            ->with('registros', $registros)
+            ->with('habilitarLocalizacao', $habilitarLocalizacao)
+            ->with('latitudeConfigurada', $latitudeConfigurada)
+            ->with('longitudeConfigurada', $longitudeConfigurada)
+            ->with('raioConfigurado', $raioConfigurado)
+            ->with('registroIp', $registroIp)
+            ->with('localizacaoIp', $localizacaoIp)
+            ->with('ipPermitido', $ipPermitido);
             ->with('usuario', $usuario)
             ->with('registros', $registros)
             ->with('habilitarLocalizacao', $habilitarLocalizacao)
