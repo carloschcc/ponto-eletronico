@@ -53,16 +53,6 @@ class DashboardController extends PontoEletronicoController {
             ->with('registroIp', $registroIp)
             ->with('localizacaoIp', $localizacaoIp)
             ->with('ipPermitido', $ipPermitido);
-            ->with('usuario', $usuario)
-            ->with('registros', $registros)
-            ->with('habilitarLocalizacao', $habilitarLocalizacao)
-            ->with('latitudeConfigurada', $latitudeConfigurada)
-            ->with('longitudeConfigurada', $longitudeConfigurada)
-            ->with('raioConfigurado', $raioConfigurado)
-            ->with('registroIp', $registroIp)
-            ->with('localizacaoIp', $localizacaoIp);
-        
-            
     }
     
 }
