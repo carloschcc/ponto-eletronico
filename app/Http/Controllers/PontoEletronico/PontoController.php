@@ -248,6 +248,22 @@ class PontoController extends PontoEletronicoController {
                 $table->text('observacoes')->nullable()->after('status');
             });
         }
+
+        if (!Schema::hasColumn('ponto', 'entrada_ip')) {
+            Schema::table('ponto', function (Blueprint $table) {
+                $table->string('entrada_ip', 45)->nullable()->after('entrada_status');
+                $table->string('entrada_latitude', 50)->nullable()->after('entrada_ip');
+                $table->string('entrada_longitude', 50)->nullable()->after('entrada_latitude');
+            });
+        }
+
+        if (!Schema::hasColumn('ponto', 'saida_ip')) {
+            Schema::table('ponto', function (Blueprint $table) {
+                $table->string('saida_ip', 45)->nullable()->after('saida_status');
+                $table->string('saida_latitude', 50)->nullable()->after('saida_ip');
+                $table->string('saida_longitude', 50)->nullable()->after('saida_latitude');
+            });
+        }
     }
 
     public function registrar(){

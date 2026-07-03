@@ -432,6 +432,7 @@ class AcompanhamentoController extends PontoEletronicoController {
         endif;
 
         foreach($registros as $registro):
+            $this->preencherGeolocalizacaoDeObservacoes($registro);
             if($registro->usuario):
                 $data[$registro->usuario->nome][] = $registro;
             endif;
@@ -452,6 +453,54 @@ class AcompanhamentoController extends PontoEletronicoController {
             ->with('app_name', getenv('APP_NAME'))
             ->with('todos', $usuario_id == 'all');
 
+    }
+
+    /**
+     * Registros antigos (gravados antes das colunas entrada_ip/saida_ip existirem,
+     * ou em ambientes onde a migration ainda não rodou) só têm IP/latitude/longitude
+     * dentro do texto livre de "observacoes". Preenche os atributos em memória a
+     * partir desse texto quando as colunas estruturadas estiverem vazias.
+     */
+    private function preencherGeolocalizacaoDeObservacoes($registro)
+    {
+        $obs = $registro->observacoes ?? null;
+        if (!$obs) {
+            return;
+        }
+
+        $entradaSeg = null;
+        $saidaSeg = null;
+
+        if (preg_match('/^(.*?)\s*\|\s*(Sa[ií]da\s*-.*)$/us', $obs, $mm)) {
+            $entradaSeg = $mm[1];
+            $saidaSeg = $mm[2];
+        } elseif (preg_match('/^Sa[ií]da\s*-/u', trim($obs))) {
+            $saidaSeg = $obs;
+        } else {
+            $entradaSeg = $obs;
+        }
+
+        if (empty($registro->entrada_ip) && $entradaSeg && preg_match('/IP:\s*([^\|]+)/u', $entradaSeg, $m)) {
+            $ip = trim($m[1]);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                $registro->entrada_ip = $ip;
+            }
+            if (preg_match('/Localiza[çc][ãa]o IP:\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $entradaSeg, $ml)) {
+                $registro->entrada_latitude = trim($ml[1]);
+                $registro->entrada_longitude = trim($ml[2]);
+            }
+        }
+
+        if (empty($registro->saida_ip) && $saidaSeg && preg_match('/IP:\s*([^\|]+)/u', $saidaSeg, $m)) {
+            $ip = trim($m[1]);
+            if (filter_var($ip, FILTER_VALIDATE_IP)) {
+                $registro->saida_ip = $ip;
+            }
+            if (preg_match('/Localiza[çc][ãa]o IP:\s*([\-0-9\.]+)\s*,\s*([\-0-9\.]+)/u', $saidaSeg, $ml)) {
+                $registro->saida_latitude = trim($ml[1]);
+                $registro->saida_longitude = trim($ml[2]);
+            }
+        }
     }
 
 }
