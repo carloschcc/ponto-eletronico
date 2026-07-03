@@ -111,13 +111,9 @@ $hora = Date('H:i');
                   @endif
                   <div class="box box-default" style="margin-top:15px; padding:15px; background:#f5f5f5;">
                     <p style="margin:0; font-size:14px;"><strong>IP atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
-                    <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong>
-                      @if($localizacaoIp && $localizacaoIp['latitude'] && $localizacaoIp['longitude'])
-                        {{ $localizacaoIp['latitude'] }}, {{ $localizacaoIp['longitude'] }}
-                      @else
-                        não disponível
-                      @endif
-                    </p>
+                    @if($localizacaoIp && $localizacaoIp['latitude'] && $localizacaoIp['longitude'])
+                      <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong> {{ $localizacaoIp['latitude'] }}, {{ $localizacaoIp['longitude'] }}</p>
+                    @endif
                   </div>
                 </div>
               </div>
@@ -170,7 +166,7 @@ $hora = Date('H:i');
                             @if($registro->observacoes)
                             <tr>
                                 <td colspan="2">
-                                    <small class="text-muted">Observações: {{ $registro->observacoes }}</small>
+                                    <small class="text-muted">Observações: {{ preg_replace('/\s*\|\s*Localização IP: não disponível/', '', $registro->observacoes) }}</small>
                                 </td>
                             </tr>
                             @endif

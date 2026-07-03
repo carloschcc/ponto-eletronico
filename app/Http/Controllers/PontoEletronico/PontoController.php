@@ -79,7 +79,7 @@ class PontoController extends PontoEletronicoController {
                 $ponto->status = 0;
                 $ponto->save();
                 
-                Session::put('status.msg', 'Entrada registrada com sucesso! Até breve!');
+                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
                 Session::put('status.error_redirect', $url_base.'/sair');
                 
                 return redirect(getenv('APP_URL').'/dashboard');
@@ -95,7 +95,7 @@ class PontoController extends PontoEletronicoController {
                 $ponto->status = 0;
                 $ponto->save();
                 
-                Session::put('status.msg', 'Entrada registrada com sucesso! Até breve!');
+                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
                 Session::put('status.error_redirect', $url_base.'/sair');
                 
                 return redirect(getenv('APP_URL').'/dashboard');
@@ -121,7 +121,7 @@ class PontoController extends PontoEletronicoController {
                 $ponto->status = 0;
                 $ponto->save();
                 
-                Session::put('status.msg', 'Entrada registrada com sucesso! Até breve!');
+                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
                 Session::put('status.error_redirect', $url_base.'/sair');
                 
                 return redirect(getenv('APP_URL').'/dashboard');
@@ -155,7 +155,7 @@ class PontoController extends PontoEletronicoController {
                 $ponto->status = 0;
                 $ponto->save();
                 
-                Session::put('status.msg', 'Saída registrada com sucesso! Até breve!');
+                Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
                 Session::put('status.error_redirect', $url_base.'/sair');
                 
                 return redirect(getenv('APP_URL').'/dashboard');
@@ -169,7 +169,7 @@ class PontoController extends PontoEletronicoController {
                 $ponto->observacoes = trim(($ponto->observacoes ?: '') . ' | ' . $saida_observacoes, ' |');
                 $ponto->save();
                 
-                Session::put('status.msg', 'Saída registrada com sucesso! Até breve!');
+                Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
                 Session::put('status.error_redirect', $url_base.'/sair');  
                 
                 return redirect(getenv('APP_URL').'/dashboard');
@@ -216,13 +216,11 @@ class PontoController extends PontoEletronicoController {
 
         if ($localizacao_ip) {
             $observacoes_registro .= ' | Localização IP: ' . $localizacao_ip['latitude'] . ', ' . $localizacao_ip['longitude'];
-        } else {
-            $observacoes_registro .= ' | Localização IP: não disponível';
-        }
 
-        if ($habilitar_localizacao == '1' && $latitude_cadastrada !== '' && $longitude_cadastrada !== '' && $localizacao_ip) {
-            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
-            $observacoes_registro .= ' | Distância do ponto configurado: ' . round($distancia_ip) . 'm';
+            if ($habilitar_localizacao == '1' && $latitude_cadastrada !== '' && $longitude_cadastrada !== '') {
+                $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
+                $observacoes_registro .= ' | Distância do ponto configurado: ' . round($distancia_ip) . 'm';
+            }
         }
 
         return $observacoes_registro;
@@ -273,7 +271,7 @@ class PontoController extends PontoEletronicoController {
             $ponto->status = 0;
             $ponto->save();
 
-            Session::put('status.msg', 'Entrada registrada com sucesso! Até breve!');
+            Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
             Session::put('status.error_redirect', $url_base.'/sair');
             
         endif;
@@ -296,7 +294,7 @@ class PontoController extends PontoEletronicoController {
             $ponto->status = 0;
             $ponto->save();    
             
-            Session::put('status.msg', 'Saída registrada com sucesso! Até breve!');
+            Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
             Session::put('status.error_redirect', $url_base.'/sair');
             
         endif;
