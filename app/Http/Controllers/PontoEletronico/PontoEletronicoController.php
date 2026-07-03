@@ -154,8 +154,8 @@ abstract class PontoEletronicoController extends Controller
         }
 
         return [
-            'latitude' => $dados['latitude'],
-            'longitude' => $dados['longitude'],
+            'latitude' => $this->formatarCoordenada($dados['latitude']),
+            'longitude' => $this->formatarCoordenada($dados['longitude']),
         ];
     }
 
@@ -172,9 +172,20 @@ abstract class PontoEletronicoController extends Controller
         }
 
         return [
-            'latitude' => $dados['lat'],
-            'longitude' => $dados['lon'],
+            'latitude' => $this->formatarCoordenada($dados['lat']),
+            'longitude' => $this->formatarCoordenada($dados['lon']),
         ];
+    }
+
+    /**
+     * Converte a coordenada para string com ponto decimal fixo, sem depender do
+     * cast implícito de float para string (que segue o locale do servidor e pode
+     * trocar o "." por "," em PT-BR, corrompendo o valor salvo). 7 casas decimais
+     * cobre toda a precisão que os provedores de geolocalização por IP oferecem.
+     */
+    private function formatarCoordenada($valor)
+    {
+        return sprintf('%.7F', (float) $valor);
     }
 
     protected function parseIpsPermitidos($valor)
