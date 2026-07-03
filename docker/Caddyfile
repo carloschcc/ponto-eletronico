@@ -1,0 +1,15 @@
+# Troque pelo seu domínio real (o mesmo que você vai apontar via DNS para o IP
+# deste servidor). Sem domínio, o Let's Encrypt não emite certificado — só
+# funciona com nome, não com IP puro.
+SEU_DOMINIO_AQUI.com.br {
+    reverse_proxy app:80
+}
+
+# Opcional: registrar um e-mail com a Let's Encrypt para receber avisos de
+# expiração/problemas de renovação (não deveria precisar, o Caddy renova
+# sozinho, mas é uma rede de segurança). Para ativar, adicione no topo do
+# arquivo, antes do bloco acima:
+#
+# {
+#     email seu-email@suaempresa.com.br
+# }

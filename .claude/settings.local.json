@@ -5,7 +5,8 @@
       "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\Users\\\\ccosta\\\\Downloads\\\\ponto-eletronico\\\\resources\\\\views\\\\pontoeletronico\\\\periodo\")",
       "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ccosta\\\\Downloads\\\\ponto-eletronico\\\\resources\\\\views\\\\pontoeletronico\\\\configuracao\")",
       "PowerShell(php -v 2>&1)",
-      "PowerShell(php -l app\\\\Http\\\\Controllers\\\\PontoEletronico\\\\AcompanhamentoController.php)"
+      "PowerShell(php -l app\\\\Http\\\\Controllers\\\\PontoEletronico\\\\AcompanhamentoController.php)",
+      "PowerShell(Get-ChildItem -Force -Recurse -Depth 1 | Where-Object { $_.Name -match 'docker|nginx|ssl|cert' } | Select-Object FullName)"
     ]
   }
 }
