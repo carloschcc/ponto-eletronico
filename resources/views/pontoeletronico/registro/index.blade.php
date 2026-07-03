@@ -104,7 +104,6 @@ $hora = Date('H:i');
                   </p>
                   @endif
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
-                  <a id="maps-link" class="btn btn-info btn-block" href="https://www.google.com/maps" target="_blank">Abrir Google Maps</a>
                   <div class="box box-default" style="margin-top:15px; padding:15px; background:#f5f5f5;">
                     <p style="margin:0; font-size:14px;"><strong>IP atual:</strong> {{ $registroIp ?: 'não disponível' }}</p>
                     <p style="margin:0; font-size:14px;"><strong>Localização do IP:</strong>
