@@ -54,32 +54,7 @@ class PontoController extends PontoEletronicoController {
             $localizacao_ip = $this->obterLocalizacaoIp();
         }
 
-        if ($habilitar_localizacao == '1') {
-            if ($latitude_cadastrada === '' || $longitude_cadastrada === '') {
-                Session::put('status.msg', 'A configuração de localização não está completa. Solicite ao administrador.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-
-            if (!$registro_ip) {
-                Session::put('status.msg', 'Não foi possível determinar seu IP para registro. Registro negado.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-
-            if (!$localizacao_ip) {
-                Session::put('status.msg', 'Não foi possível obter localização por IP. Registro negado.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-
-            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
-            if ($distancia_ip > $raio_cadastrado) {
-                Session::put('status.msg', 'Sua localização pela rede (IP) está fora da área permitida.');
-                Session::put('status.error_redirect', $url_base.'/dashboard');
-                return redirect($url_base.'/dashboard');
-            }
-        }
+        $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
 
         if($area == 'entrada'):
             
@@ -95,6 +70,7 @@ class PontoController extends PontoEletronicoController {
                     $ponto->entrada_latitude = $localizacao_ip['latitude'];
                     $ponto->entrada_longitude = $localizacao_ip['longitude'];
                 }
+                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -115,6 +91,7 @@ class PontoController extends PontoEletronicoController {
                     $ponto->entrada_latitude = $localizacao_ip['latitude'];
                     $ponto->entrada_longitude = $localizacao_ip['longitude'];
                 }
+                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -145,6 +122,7 @@ class PontoController extends PontoEletronicoController {
                     $ponto->entrada_latitude = $localizacao_ip['latitude'];
                     $ponto->entrada_longitude = $localizacao_ip['longitude'];
                 }
+                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -183,6 +161,7 @@ class PontoController extends PontoEletronicoController {
                     $ponto->saida_latitude = $localizacao_ip['latitude'];
                     $ponto->saida_longitude = $localizacao_ip['longitude'];
                 }
+                $ponto->observacoes = 'Saída - ' . $observacoes_registro;
                 $ponto->status = 0;
                 $ponto->save();
                 
@@ -196,11 +175,8 @@ class PontoController extends PontoEletronicoController {
                 $ponto = Ponto::find($ultimo_registro->id);
                 $ponto->saida = $hora_registrada;
                 $ponto->saida_status = 0;
-                $ponto->saida_ip = $registro_ip;
-                if ($localizacao_ip) {
-                    $ponto->saida_latitude = $localizacao_ip['latitude'];
-                    $ponto->saida_longitude = $localizacao_ip['longitude'];
-                }
+                $saida_observacoes = 'Saída - ' . $observacoes_registro;
+                $ponto->observacoes = trim(($ponto->observacoes ?: '') . ' | ' . $saida_observacoes, ' |');
                 $ponto->save();
                 
                 Session::put('status.msg', 'Saída registrada com sucesso! Até breve!');
@@ -244,6 +220,24 @@ class PontoController extends PontoEletronicoController {
         return $earthRadius * $c;
     }
 
+    private function montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada)
+    {
+        $observacoes_registro = 'IP: ' . ($registro_ip ?: 'não disponível');
+
+        if ($localizacao_ip) {
+            $observacoes_registro .= ' | Localização IP: ' . $localizacao_ip['latitude'] . ', ' . $localizacao_ip['longitude'];
+        } else {
+            $observacoes_registro .= ' | Localização IP: não disponível';
+        }
+
+        if ($habilitar_localizacao == '1' && $latitude_cadastrada !== '' && $longitude_cadastrada !== '' && $localizacao_ip) {
+            $distancia_ip = $this->calcularDistanciaEmMetros($localizacao_ip['latitude'], $localizacao_ip['longitude'], $latitude_cadastrada, $longitude_cadastrada);
+            $observacoes_registro .= ' | Distância do ponto configurado: ' . round($distancia_ip) . 'm';
+        }
+
+        return $observacoes_registro;
+    }
+
     public function registrar(){
         
         $url_base = getenv('APP_URL');
@@ -256,13 +250,30 @@ class PontoController extends PontoEletronicoController {
         $area = Session::get('status.area');
 
                
+        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+
         if($area == 'entrada'):
         
+            $registro_ip = $this->obterIpCliente();
+            $localizacao_ip = null;
+            if ($habilitar_localizacao == '1') {
+                $localizacao_ip = $this->obterLocalizacaoIp();
+            }
+            $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
+
             $ponto = new Ponto();
             $ponto->usuario_id = $usuario_id;
             $ponto->data = $hoje;
             $ponto->entrada = $hora_registrada;
             $ponto->entrada_status = 0;
+            $ponto->entrada_ip = $registro_ip;
+            if ($localizacao_ip) {
+                $ponto->entrada_latitude = $localizacao_ip['latitude'];
+                $ponto->entrada_longitude = $localizacao_ip['longitude'];
+            }
+            $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
             $ponto->status = 0;
             $ponto->save();
 
@@ -273,11 +284,24 @@ class PontoController extends PontoEletronicoController {
         
         if($area == 'saida'):
             
+            $registro_ip = $this->obterIpCliente();
+            $localizacao_ip = null;
+            if ($habilitar_localizacao == '1') {
+                $localizacao_ip = $this->obterLocalizacaoIp();
+            }
+            $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
+
             $ponto = new Ponto();
             $ponto->usuario_id = $usuario_id;
             $ponto->data = $hoje;
             $ponto->saida = $hora_registrada;
             $ponto->saida_status = 0;
+            $ponto->saida_ip = $registro_ip;
+            if ($localizacao_ip) {
+                $ponto->saida_latitude = $localizacao_ip['latitude'];
+                $ponto->saida_longitude = $localizacao_ip['longitude'];
+            }
+            $ponto->observacoes = 'Saída - ' . $observacoes_registro;
             $ponto->status = 0;
             $ponto->save();    
             

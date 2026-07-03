@@ -163,6 +163,13 @@ $hora = Date('H:i');
                                     </small>
                                 </td>
                             </tr>
+                            @if($registro->observacoes)
+                            <tr>
+                                <td colspan="2">
+                                    <small class="text-muted">Observações: {{ $registro->observacoes }}</small>
+                                </td>
+                            </tr>
+                            @endif
                             @endforeach
                             
                         </tbody></table>
