@@ -54,10 +54,7 @@ class PontoController extends PontoEletronicoController {
         $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         $registro_ip = $this->obterIpCliente();
-        $localizacao_ip = null;
-        if ($habilitar_localizacao == '1') {
-            $localizacao_ip = $this->obterLocalizacaoIp();
-        }
+        $localizacao_ip = $this->obterLocalizacaoIp();
 
         if (!$this->ipPermitido($registro_ip, $this->parseIpsPermitidos($ips_permitidos))) {
             Session::put('status.msg', 'Seu IP não está na lista de IPs permitidos para registrar ponto.');
@@ -287,10 +284,7 @@ class PontoController extends PontoEletronicoController {
         if($area == 'entrada'):
         
             $registro_ip = $this->obterIpCliente();
-            $localizacao_ip = null;
-            if ($habilitar_localizacao == '1') {
-                $localizacao_ip = $this->obterLocalizacaoIp();
-            }
+            $localizacao_ip = $this->obterLocalizacaoIp();
             $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
 
             $ponto = new Ponto();
@@ -313,10 +307,7 @@ class PontoController extends PontoEletronicoController {
         if($area == 'saida'):
             
             $registro_ip = $this->obterIpCliente();
-            $localizacao_ip = null;
-            if ($habilitar_localizacao == '1') {
-                $localizacao_ip = $this->obterLocalizacaoIp();
-            }
+            $localizacao_ip = $this->obterLocalizacaoIp();
             $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_ip, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
 
             $ponto = new Ponto();
