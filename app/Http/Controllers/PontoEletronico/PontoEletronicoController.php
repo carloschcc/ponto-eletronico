@@ -1,6 +1,7 @@
 <?php namespace App\Http\Controllers\PontoEletronico;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
@@ -84,25 +85,65 @@ abstract class PontoEletronicoController extends Controller
     {
         $ip = $this->obterIpCliente();
         if (!$ip) {
+            Log::warning('Geolocalização por IP: IP do cliente indisponível ou privado (não é possível geolocalizar IPs de rede local).');
             return null;
         }
 
-        $url = 'https://ipapi.co/' . $ip . '/json/';
-        $resultado = null;
-
-        if (ini_get('allow_url_fopen')) {
-            $resultado = @file_get_contents($url);
+        $localizacao = $this->consultarIpapiCo($ip);
+        if ($localizacao) {
+            return $localizacao;
         }
 
-        if (!$resultado && function_exists('curl_version')) {
+        $localizacao = $this->consultarIpApiCom($ip);
+        if ($localizacao) {
+            return $localizacao;
+        }
+
+        Log::warning("Geolocalização por IP: nenhum provedor retornou latitude/longitude para o IP {$ip}.");
+        return null;
+    }
+
+    private function httpGetJson($url)
+    {
+        if (function_exists('curl_version')) {
             $curl = curl_init($url);
             curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 3);
             curl_setopt($curl, CURLOPT_TIMEOUT, 5);
             curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($curl, CURLOPT_USERAGENT, 'ponto-eletronico');
+            curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
             $resultado = curl_exec($curl);
+            $erro = curl_error($curl);
+            $status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
             curl_close($curl);
+
+            if ($resultado !== false && $status >= 200 && $status < 300) {
+                return $resultado;
+            }
+
+            Log::warning("Geolocalização por IP: falha ao consultar {$url} via cURL (status={$status}, erro={$erro}).");
         }
 
+        if (ini_get('allow_url_fopen')) {
+            $contexto = stream_context_create([
+                'http' => ['timeout' => 5, 'header' => "User-Agent: ponto-eletronico\r\n"],
+                'ssl'  => ['timeout' => 5],
+            ]);
+            $resultado = @file_get_contents($url, false, $contexto);
+            if ($resultado !== false) {
+                return $resultado;
+            }
+            $erro = error_get_last();
+            Log::warning("Geolocalização por IP: falha ao consultar {$url} via file_get_contents (" . ($erro['message'] ?? 'erro desconhecido') . ').');
+        }
+
+        return null;
+    }
+
+    private function consultarIpapiCo($ip)
+    {
+        $resultado = $this->httpGetJson('https://ipapi.co/' . $ip . '/json/');
         if (!$resultado) {
             return null;
         }
@@ -115,6 +156,24 @@ abstract class PontoEletronicoController extends Controller
         return [
             'latitude' => $dados['latitude'],
             'longitude' => $dados['longitude'],
+        ];
+    }
+
+    private function consultarIpApiCom($ip)
+    {
+        $resultado = $this->httpGetJson('http://ip-api.com/json/' . $ip . '?fields=status,lat,lon');
+        if (!$resultado) {
+            return null;
+        }
+
+        $dados = json_decode($resultado, true);
+        if (!is_array($dados) || ($dados['status'] ?? null) !== 'success' || empty($dados['lat']) || empty($dados['lon'])) {
+            return null;
+        }
+
+        return [
+            'latitude' => $dados['lat'],
+            'longitude' => $dados['lon'],
         ];
     }
 

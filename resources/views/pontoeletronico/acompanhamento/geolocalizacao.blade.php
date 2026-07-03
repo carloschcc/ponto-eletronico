@@ -83,6 +83,7 @@
 
         @media print {
             .no-print { display: none !important; }
+            .no-print-col { display: none !important; }
             body { background: #fff; font-size: 10px; }
 
             .employee-section {
@@ -135,6 +136,9 @@ foreach ($registros as $reg) {
             'ip'        => $reg->entrada_ip ?? '—',
             'latitude'  => $reg->entrada_latitude ?? '—',
             'longitude' => $reg->entrada_longitude ?? '—',
+            'mapa_url'  => (!empty($reg->entrada_latitude) && !empty($reg->entrada_longitude))
+                ? 'https://www.openstreetmap.org/?mlat=' . $reg->entrada_latitude . '&mlon=' . $reg->entrada_longitude . '#map=16/' . $reg->entrada_latitude . '/' . $reg->entrada_longitude
+                : null,
         ];
     }
 
@@ -146,6 +150,9 @@ foreach ($registros as $reg) {
             'ip'        => $reg->saida_ip ?? '—',
             'latitude'  => $reg->saida_latitude ?? '—',
             'longitude' => $reg->saida_longitude ?? '—',
+            'mapa_url'  => (!empty($reg->saida_latitude) && !empty($reg->saida_longitude))
+                ? 'https://www.openstreetmap.org/?mlat=' . $reg->saida_latitude . '&mlon=' . $reg->saida_longitude . '#map=16/' . $reg->saida_latitude . '/' . $reg->saida_longitude
+                : null,
         ];
     }
 }
@@ -183,12 +190,13 @@ $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
     <table>
         <thead>
             <tr>
-                <th width="12%">Data</th>
-                <th width="10%">Tipo</th>
-                <th width="8%">Hora</th>
-                <th width="20%">IP de Registro</th>
-                <th width="25%">Latitude</th>
-                <th width="25%">Longitude</th>
+                <th width="10%">Data</th>
+                <th width="8%">Tipo</th>
+                <th width="7%">Hora</th>
+                <th width="16%">IP de Registro</th>
+                <th width="20%">Latitude</th>
+                <th width="20%">Longitude</th>
+                <th width="19%" class="no-print-col">Mapa</th>
             </tr>
         </thead>
         <tbody>
@@ -200,6 +208,13 @@ $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
                 <td class="col-center">{{ $row['ip'] }}</td>
                 <td class="col-center">{{ $row['latitude'] }}</td>
                 <td class="col-center">{{ $row['longitude'] }}</td>
+                <td class="col-center no-print-col">
+                    @if($row['mapa_url'])
+                        <a href="{{ $row['mapa_url'] }}" target="_blank">Ver no mapa</a>
+                    @else
+                        —
+                    @endif
+                </td>
             </tr>
         @endforeach
         </tbody>
