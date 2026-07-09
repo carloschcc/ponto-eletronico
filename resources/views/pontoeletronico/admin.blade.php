@@ -54,6 +54,19 @@ $_foto_registro    = ($_usuario_registro && $_usuario_registro->foto)
     .box.box-primary {
         border-top-color: #000000 !important;
     }
+    .main-header .logo {
+        text-align: center;
+    }
+    .main-header .logo .logo-lg img {
+        max-width: 100%;
+        height: auto;
+    }
+    @media (max-width: 767px) {
+        .main-header .logo {
+            width: 100%;
+            float: none;
+        }
+    }
   </style>
 </head>
 <body class="hold-transition skin-black sidebar-mini">
@@ -65,7 +78,7 @@ $_foto_registro    = ($_usuario_registro && $_usuario_registro->foto)
   <header class="main-header">
 
     <!-- Logo -->
-    <a href="#" class="logo" style="text-align: left !important;">
+    <a href="#" class="logo">
       <!-- mini logo for sidebar mini 50x50 pixels -->
       <span class="logo-mini"><img src="{{ $url_base }}/img/apple-touch-icon.png"></span>
       <!-- logo for regular state and mobile devices -->
