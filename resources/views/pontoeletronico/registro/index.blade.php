@@ -99,18 +99,8 @@ $hora = Date('H:i');
                   <h3 class="box-title"><i class="fa fa-map-marker"></i> Localização do Ponto</h3>
                 </div>
                 <div class="box-body">
-                  @if($habilitarLocalizacao == '1' && $latitudeConfigurada && $longitudeConfigurada)
                   <p class="text-muted" style="font-size:12px; margin-top:10px;">
-                    Local do ponto configurado: <strong>{{ $latitudeConfigurada }}, {{ $longitudeConfigurada }}</strong> (raio {{ $raioConfigurado }}m).
-                    O registro será validado pelo IP do usuário. Coordenadas manuais não serão usadas.
-                  </p>
-                  @else
-                  <p class="text-muted" style="font-size:12px; margin-top:10px;">
-                    O registro será validado pelo IP do usuário. Coordenadas manuais não serão usadas.
-                  </p>
-                  @endif
-                  <p id="status-gps" class="text-muted" style="font-size:12px; margin-top:8px;">
-                    <i class="fa fa-crosshairs"></i> Localização GPS do dispositivo: <span id="status-gps-texto">verificando...</span>
+                    A validação do registro será feita pelo IP do usuário e GPS.
                   </p>
                   <button type="button" id="btn-detect-location" class="btn btn-primary btn-block">Verificar localização por IP</button>
                   @if(isset($ipPermitido) && !$ipPermitido)
@@ -172,13 +162,6 @@ $hora = Date('H:i');
                                     </small>
                                 </td>
                             </tr>
-                            @if($registro->observacoes)
-                            <tr>
-                                <td colspan="2">
-                                    <small class="text-muted">Observações: {{ preg_replace('/\s*\|\s*Localização IP: não disponível/', '', $registro->observacoes) }}</small>
-                                </td>
-                            </tr>
-                            @endif
                             @endforeach
                             
                         </tbody></table>
