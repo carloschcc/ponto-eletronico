@@ -31,12 +31,13 @@ class DashboardPainelController extends PontoEletronicoController {
         $com_batida = function($q){ $q->whereNotNull('entrada')->orWhereNotNull('saida'); };
 
         if($admin == 1):
+            $ids_ativos          = Usuario::where('ativo', 1)->pluck('id');
             $total_colaboradores = Usuario::where('ativo', 1)->where('admin', '!=', 1)->count();
             $ajustes_pendentes   = PontoAjuste::where('status', 0)->count();
             $entradas_hoje       = Ponto::where('data', $hoje)->whereNotNull('entrada')->count();
             $saidas_hoje         = Ponto::where('data', $hoje)->whereNotNull('saida')->count();
             $ultimas_batidas     = Ponto::where('data', $hoje)->where($com_batida)->with('usuario')->orderBy('updated_at', 'DESC')->limit(15)->get();
-            $batidas_mes         = Ponto::where('data', '>=', $mes_inicio)->where('data', '<=', $hoje)->where($com_batida)->with('usuario')->orderBy('data', 'DESC')->limit(20)->get();
+            $batidas_mes         = Ponto::whereIn('usuario_id', $ids_ativos)->where('data', '>=', $mes_inicio)->where('data', '<=', $hoje)->where($com_batida)->with('usuario')->orderBy('data', 'DESC')->limit(20)->get();
         else:
             $total_colaboradores = 0;
             $ajustes_pendentes   = PontoAjuste::where('usuario_id', $usuario_id)->where('status', 0)->count();
