@@ -31,7 +31,7 @@
     
 <div class="login-box">
   <div class="login-logo">
-      <a href="#"><img src="{{ getenv('APP_URL') }}/img/ilab4_logo_pontoeletronico.png" width="350px;"></a>
+      <a href="#"><img src="{{ getenv('APP_URL') }}/img/ilab4_logo_pontoeletronico.png" style="max-width: 100%; width: 350px; height: auto;"></a>
       
       <h2><?=Date('d/m/Y')?> <?=Date('H:i')?></h2>
   </div>
