@@ -2,8 +2,6 @@
 
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use App\Configuracao;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
@@ -15,42 +13,31 @@ use App\Ponto;
 
 
 class PontoController extends PontoEletronicoController {
-    
-    
+
+
     public function __construct()
     {
         $this->middleware('authMiddleware');
-        
-    }
-    
-    public function registrar_validando(){
-        
-        $url_base = getenv('APP_URL');
 
-        $this->garantirColunaObservacoes();
-        
+    }
+
+    public function registrar_validando(){
+
         $usuario_id = Session::get('login.ponto.usuario_id');
-        
+
         $hoje = Date("Y-m-d");
-        
+
         $ultimo_registro = Ponto::where(['usuario_id' => $usuario_id, 'data' => $hoje])->orderBy('id', 'DESC')->first();
-        
-        if($ultimo_registro):
-            $registro_entrada = $ultimo_registro->entrada;
-            $registro_saida = $ultimo_registro->saida;
-        else:
-            $registro_entrada = '';
-            $registro_saida = '';
-        endif;
-        
-        
+
+        $registro_entrada = $ultimo_registro->entrada ?? '';
+        $registro_saida = $ultimo_registro->saida ?? '';
+
         $area = Request::input('area');
         $hora_registrada = Request::input('hora');
 
         $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
         $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
         $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
-        $raio_cadastrado = (float) Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
         $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         $registro_ip = $this->obterIpCliente();
@@ -58,179 +45,167 @@ class PontoController extends PontoEletronicoController {
         $gps_lat_raw = Request::input('gps_latitude');
         $gps_lon_raw = Request::input('gps_longitude');
         $gps_precisao_raw = Request::input('gps_precisao');
-        $localizacao_gps = $this->obterLocalizacaoGpsRequest($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw);
-
-        if ($localizacao_gps) {
-            $localizacao_registro = $localizacao_gps;
-            $fonte_localizacao = 'gps';
-        } else {
-            $localizacao_registro = $this->obterLocalizacaoIp();
-            $fonte_localizacao = $localizacao_registro ? 'ip' : null;
-        }
 
         if (!$this->ipPermitido($registro_ip, $this->parseIpsPermitidos($ips_permitidos))) {
             Session::put('status.msg', 'Seu IP não está na lista de IPs permitidos para registrar ponto.');
             return redirect(getenv('APP_URL').'/dashboard');
         }
 
+        [$localizacao_registro, $fonte_localizacao] = $this->resolverLocalizacao($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw);
         $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_registro, $fonte_localizacao, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
 
-        if($area == 'entrada'):
-            
-            if(!empty($registro_saida) AND !empty($registro_entrada)):
-                
-                $ponto = new Ponto();
-                $ponto->usuario_id = $usuario_id;
-                $ponto->data = $hoje;
-                $ponto->entrada = $hora_registrada;
-                $ponto->entrada_status = 0;
-                $ponto->entrada_ip = $registro_ip;
-                $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
-                $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
-                $ponto->entrada_geo_fonte = $fonte_localizacao;
-                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
-                $ponto->status = 0;
-                $ponto->save();
-                
-                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
-                Session::put('status.error_redirect', $url_base.'/sair');
-                
-                return redirect(getenv('APP_URL').'/dashboard');
-            
-            elseif(!empty($registro_saida) AND empty($registro_entrada)):    
-                
-                $ponto = new Ponto();
-                $ponto->usuario_id = $usuario_id;
-                $ponto->data = $hoje;
-                $ponto->entrada = $hora_registrada;
-                $ponto->entrada_status = 0;
-                $ponto->entrada_ip = $registro_ip;
-                $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
-                $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
-                $ponto->entrada_geo_fonte = $fonte_localizacao;
-                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
-                $ponto->status = 0;
-                $ponto->save();
-                
-                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
-                Session::put('status.error_redirect', $url_base.'/sair');
-                
-                return redirect(getenv('APP_URL').'/dashboard');
-                
-            elseif(empty($registro_saida) AND !empty($registro_entrada)):
+        if ($area === 'entrada') {
+            // Só pede confirmação quando há uma entrada em aberto (sem saída) hoje.
+            $entradaEmAberto = !empty($registro_entrada) && empty($registro_saida);
 
-                Session::put('status.hora_registrada', $hora_registrada);
-                Session::put('status.area', $area);
-                Session::put('status.gps_latitude', $gps_lat_raw);
-                Session::put('status.gps_longitude', $gps_lon_raw);
-                Session::put('status.gps_precisao', $gps_precisao_raw);
+            if ($entradaEmAberto) {
+                return $this->pedirConfirmacao($area, $hora_registrada, $gps_lat_raw, $gps_lon_raw, $gps_precisao_raw, 'Você está fazendo um registro de entrada sem um registro prévio de saída. Confirma?');
+            }
 
-                Session::put('status.msg_confirm', 'Você está fazendo um registro de entrada sem um registro prévio de saída. Confirma?');
-                Session::put('status.redir_confirm', $url_base.'/registrar');
+            $this->salvarNovoRegistro($usuario_id, $hoje, 'entrada', $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro);
 
-                return redirect(getenv('APP_URL').'/dashboard');
-            
-            else:
-                
-                $ponto = new Ponto();
-                $ponto->usuario_id = $usuario_id;
-                $ponto->data = $hoje;
-                $ponto->entrada = $hora_registrada;
-                $ponto->entrada_status = 0;
-                $ponto->entrada_ip = $registro_ip;
-                $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
-                $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
-                $ponto->entrada_geo_fonte = $fonte_localizacao;
-                $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
-                $ponto->status = 0;
-                $ponto->save();
-                
-                Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
-                Session::put('status.error_redirect', $url_base.'/sair');
-                
-                return redirect(getenv('APP_URL').'/dashboard');
-                
-            endif;
-            
-        endif;
-        
-        
-        
-        if($area == 'saida'):
-            
-            if(!empty($registro_saida) AND !empty($registro_entrada)):
+            return $this->sucessoRegistro('Entrada registrada com sucesso! Registro por IP válido.');
+        }
 
-                Session::put('status.hora_registrada', $hora_registrada);
-                Session::put('status.area', $area);
-                Session::put('status.gps_latitude', $gps_lat_raw);
-                Session::put('status.gps_longitude', $gps_lon_raw);
-                Session::put('status.gps_precisao', $gps_precisao_raw);
+        if ($area === 'saida') {
+            if (empty($registro_saida) && !empty($registro_entrada)) {
+                $this->atualizarSaidaExistente($ultimo_registro, $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro);
+                return $this->sucessoRegistro('Saída registrada com sucesso! Registro por IP válido.');
+            }
 
-                Session::put('status.msg_confirm', 'Você está fazendo um registro de saída sem um registro prévio de entrada. Confirma?');
-                Session::put('status.redir_confirm', $url_base.'/registrar');
+            if (!empty($registro_saida) && empty($registro_entrada)) {
+                $this->salvarNovoRegistro($usuario_id, $hoje, 'saida', $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro);
+                return $this->sucessoRegistro('Saída registrada com sucesso! Registro por IP válido.');
+            }
 
-                return redirect(getenv('APP_URL').'/dashboard');
-
-            elseif(!empty($registro_saida) AND empty($registro_entrada)):
-                
-                $ponto = new Ponto();
-                $ponto->usuario_id = $usuario_id;
-                $ponto->data = $hoje;
-                $ponto->saida = $hora_registrada;
-                $ponto->saida_status = 0;
-                $ponto->saida_ip = $registro_ip;
-                $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
-                $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
-                $ponto->saida_geo_fonte = $fonte_localizacao;
-                $ponto->observacoes = 'Saída - ' . $observacoes_registro;
-                $ponto->status = 0;
-                $ponto->save();
-
-                Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
-                Session::put('status.error_redirect', $url_base.'/sair');
-
-                return redirect(getenv('APP_URL').'/dashboard');
-
-            elseif(empty($registro_saida) AND !empty($registro_entrada)):
-
-                $ponto = Ponto::find($ultimo_registro->id);
-                $ponto->saida = $hora_registrada;
-                $ponto->saida_status = 0;
-                $ponto->saida_ip = $registro_ip;
-                $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
-                $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
-                $ponto->saida_geo_fonte = $fonte_localizacao;
-                $saida_observacoes = 'Saída - ' . $observacoes_registro;
-                $ponto->observacoes = trim(($ponto->observacoes ?: '') . ' | ' . $saida_observacoes, ' |');
-                $ponto->save();
-                
-                Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
-                Session::put('status.error_redirect', $url_base.'/sair');  
-                
-                return redirect(getenv('APP_URL').'/dashboard');
-            
-            else:
-
-                Session::put('status.hora_registrada', $hora_registrada);
-                Session::put('status.area', $area);
-                Session::put('status.gps_latitude', $gps_lat_raw);
-                Session::put('status.gps_longitude', $gps_lon_raw);
-                Session::put('status.gps_precisao', $gps_precisao_raw);
-
-                Session::put('status.msg_confirm', 'Você está fazendo um registro de saída sem um registro prévio de entrada. Confirma?');
-                Session::put('status.redir_confirm', $url_base.'/registrar');
-
-                return redirect(getenv('APP_URL').'/dashboard');
-
-            endif;
-
-        endif;
+            // Dia já fechado (ambos preenchidos) ou nada em aberto (ambos vazios): exige confirmação.
+            return $this->pedirConfirmacao($area, $hora_registrada, $gps_lat_raw, $gps_lon_raw, $gps_precisao_raw, 'Você está fazendo um registro de saída sem um registro prévio de entrada. Confirma?');
+        }
 
         Session::put('status.msg', 'Falha no registro. Por favor, tente novamente.');
         return redirect(getenv('APP_URL').'/dashboard');
-        
+
     }
-    
+
+    public function registrar(){
+
+        $usuario_id = Session::get('login.ponto.usuario_id');
+        $hoje = Date("Y-m-d");
+        $hora_registrada = Session::get('status.hora_registrada');
+        $area = Session::get('status.area');
+
+        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
+        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
+        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+
+        $gps_lat_raw = Session::get('status.gps_latitude');
+        $gps_lon_raw = Session::get('status.gps_longitude');
+        $gps_precisao_raw = Session::get('status.gps_precisao');
+        Session::forget(['status.gps_latitude', 'status.gps_longitude', 'status.gps_precisao']);
+
+        if ($area !== 'entrada' && $area !== 'saida') {
+            return redirect(getenv('APP_URL').'/dashboard');
+        }
+
+        $registro_ip = $this->obterIpCliente();
+        [$localizacao_registro, $fonte_localizacao] = $this->resolverLocalizacao($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw);
+        $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_registro, $fonte_localizacao, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
+
+        $this->salvarNovoRegistro($usuario_id, $hoje, $area, $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro);
+
+        $mensagem = $area === 'entrada'
+            ? 'Entrada registrada com sucesso! Registro por IP válido.'
+            : 'Saída registrada com sucesso! Registro por IP válido.';
+
+        return $this->sucessoRegistro($mensagem);
+
+    }
+
+    private function resolverLocalizacao($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw)
+    {
+        $localizacao_gps = $this->obterLocalizacaoGpsRequest($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw);
+
+        if ($localizacao_gps) {
+            return [$localizacao_gps, 'gps'];
+        }
+
+        $localizacao_ip = $this->obterLocalizacaoIp();
+        return [$localizacao_ip, $localizacao_ip ? 'ip' : null];
+    }
+
+    private function salvarNovoRegistro($usuario_id, $hoje, $area, $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro)
+    {
+        $ponto = new Ponto();
+        $ponto->usuario_id = $usuario_id;
+        $ponto->data = $hoje;
+        $ponto->status = 0;
+
+        if ($area === 'entrada') {
+            $ponto->entrada = $hora_registrada;
+            $ponto->entrada_status = 0;
+            $ponto->entrada_ip = $registro_ip;
+            $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
+            $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
+            $ponto->entrada_geo_fonte = $fonte_localizacao;
+            $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
+        } else {
+            $ponto->saida = $hora_registrada;
+            $ponto->saida_status = 0;
+            $ponto->saida_ip = $registro_ip;
+            $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
+            $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
+            $ponto->saida_geo_fonte = $fonte_localizacao;
+            $ponto->observacoes = 'Saída - ' . $observacoes_registro;
+        }
+
+        $ponto->save();
+
+        return $ponto;
+    }
+
+    private function atualizarSaidaExistente($ponto, $hora_registrada, $registro_ip, $localizacao_registro, $fonte_localizacao, $observacoes_registro)
+    {
+        $ponto->saida = $hora_registrada;
+        $ponto->saida_status = 0;
+        $ponto->saida_ip = $registro_ip;
+        $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
+        $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
+        $ponto->saida_geo_fonte = $fonte_localizacao;
+
+        $saida_observacoes = 'Saída - ' . $observacoes_registro;
+        $ponto->observacoes = trim(($ponto->observacoes ?: '') . ' | ' . $saida_observacoes, ' |');
+
+        $ponto->save();
+
+        return $ponto;
+    }
+
+    private function pedirConfirmacao($area, $hora_registrada, $gps_lat_raw, $gps_lon_raw, $gps_precisao_raw, $mensagem)
+    {
+        $url_base = getenv('APP_URL');
+
+        Session::put('status.hora_registrada', $hora_registrada);
+        Session::put('status.area', $area);
+        Session::put('status.gps_latitude', $gps_lat_raw);
+        Session::put('status.gps_longitude', $gps_lon_raw);
+        Session::put('status.gps_precisao', $gps_precisao_raw);
+
+        Session::put('status.msg_confirm', $mensagem);
+        Session::put('status.redir_confirm', $url_base.'/registrar');
+
+        return redirect(getenv('APP_URL').'/dashboard');
+    }
+
+    private function sucessoRegistro($mensagem)
+    {
+        $url_base = getenv('APP_URL');
+
+        Session::put('status.msg', $mensagem);
+        Session::put('status.error_redirect', $url_base.'/sair');
+
+        return redirect(getenv('APP_URL').'/dashboard');
+    }
+
     private function calcularDistanciaEmMetros($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371000;
@@ -269,131 +244,4 @@ class PontoController extends PontoEletronicoController {
         return $observacoes_registro;
     }
 
-    private function garantirColunaObservacoes()
-    {
-        if (!Schema::hasColumn('ponto', 'observacoes')) {
-            Schema::table('ponto', function (Blueprint $table) {
-                $table->text('observacoes')->nullable()->after('status');
-            });
-        }
-
-        if (!Schema::hasColumn('ponto', 'entrada_ip')) {
-            Schema::table('ponto', function (Blueprint $table) {
-                $table->string('entrada_ip', 45)->nullable()->after('entrada_status');
-                $table->string('entrada_latitude', 50)->nullable()->after('entrada_ip');
-                $table->string('entrada_longitude', 50)->nullable()->after('entrada_latitude');
-            });
-        }
-
-        if (!Schema::hasColumn('ponto', 'saida_ip')) {
-            Schema::table('ponto', function (Blueprint $table) {
-                $table->string('saida_ip', 45)->nullable()->after('saida_status');
-                $table->string('saida_latitude', 50)->nullable()->after('saida_ip');
-                $table->string('saida_longitude', 50)->nullable()->after('saida_latitude');
-            });
-        }
-
-        if (!Schema::hasColumn('ponto', 'entrada_geo_fonte')) {
-            Schema::table('ponto', function (Blueprint $table) {
-                $table->string('entrada_geo_fonte', 10)->nullable()->after('entrada_longitude');
-            });
-        }
-
-        if (!Schema::hasColumn('ponto', 'saida_geo_fonte')) {
-            Schema::table('ponto', function (Blueprint $table) {
-                $table->string('saida_geo_fonte', 10)->nullable()->after('saida_longitude');
-            });
-        }
-    }
-
-    public function registrar(){
-        
-        $url_base = getenv('APP_URL');
-        
-        $this->garantirColunaObservacoes();
-        
-        $usuario_id = Session::get('login.ponto.usuario_id');
-        
-        $hoje = Date("Y-m-d");
-        
-        $hora_registrada = Session::get('status.hora_registrada');
-        $area = Session::get('status.area');
-
-               
-        $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
-        $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
-        $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
-
-        $localizacao_gps = $this->obterLocalizacaoGpsRequest(
-            Session::get('status.gps_latitude'),
-            Session::get('status.gps_longitude'),
-            Session::get('status.gps_precisao')
-        );
-        Session::forget(['status.gps_latitude', 'status.gps_longitude', 'status.gps_precisao']);
-
-        if($area == 'entrada'):
-
-            $registro_ip = $this->obterIpCliente();
-            if ($localizacao_gps) {
-                $localizacao_registro = $localizacao_gps;
-                $fonte_localizacao = 'gps';
-            } else {
-                $localizacao_registro = $this->obterLocalizacaoIp();
-                $fonte_localizacao = $localizacao_registro ? 'ip' : null;
-            }
-            $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_registro, $fonte_localizacao, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
-
-            $ponto = new Ponto();
-            $ponto->usuario_id = $usuario_id;
-            $ponto->data = $hoje;
-            $ponto->entrada = $hora_registrada;
-            $ponto->entrada_status = 0;
-            $ponto->entrada_ip = $registro_ip;
-            $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
-            $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
-            $ponto->entrada_geo_fonte = $fonte_localizacao;
-            $ponto->observacoes = 'Entrada - ' . $observacoes_registro;
-            $ponto->status = 0;
-            $ponto->save();
-
-            Session::put('status.msg', 'Entrada registrada com sucesso! Registro por IP válido.');
-            Session::put('status.error_redirect', $url_base.'/sair');
-
-        endif;
-
-        if($area == 'saida'):
-
-            $registro_ip = $this->obterIpCliente();
-            if ($localizacao_gps) {
-                $localizacao_registro = $localizacao_gps;
-                $fonte_localizacao = 'gps';
-            } else {
-                $localizacao_registro = $this->obterLocalizacaoIp();
-                $fonte_localizacao = $localizacao_registro ? 'ip' : null;
-            }
-            $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_registro, $fonte_localizacao, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
-
-            $ponto = new Ponto();
-            $ponto->usuario_id = $usuario_id;
-            $ponto->data = $hoje;
-            $ponto->saida = $hora_registrada;
-            $ponto->saida_status = 0;
-            $ponto->saida_ip = $registro_ip;
-            $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
-            $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
-            $ponto->saida_geo_fonte = $fonte_localizacao;
-            $ponto->observacoes = 'Saída - ' . $observacoes_registro;
-            $ponto->status = 0;
-            $ponto->save();
-            
-            Session::put('status.msg', 'Saída registrada com sucesso! Registro por IP válido.');
-            Session::put('status.error_redirect', $url_base.'/sair');
-            
-        endif;
-        
-        return redirect(getenv('APP_URL').'/dashboard');
-        
-        
-    }
-    
 }

@@ -12,7 +12,6 @@ use App\Ponto;
 use App\PontoRazao;
 use App\PeriodoFechamento;
 use App\Feriado;
-use Illuminate\Support\Facades\Schema;
 
 class AcompanhamentoController extends PontoEletronicoController {
     
@@ -70,13 +69,7 @@ class AcompanhamentoController extends PontoEletronicoController {
         else:
 
             // Usa o período ativo mais recente (cuja data_fim >= hoje) se existir
-            $periodo_ativo = null;
-            if(Schema::hasTable('periodo_fechamento') && Schema::hasColumn('periodo_fechamento', 'ativo')):
-                $periodo_ativo = PeriodoFechamento::where('ativo', 1)->first();
-            elseif(Schema::hasTable('periodo_fechamento')):
-                $periodo_ativo = PeriodoFechamento::where('data_fim', '>=', Date('Y-m-d'))
-                    ->orderBy('data_inicio', 'ASC')->first();
-            endif;
+            $periodo_ativo = PeriodoFechamento::where('ativo', 1)->first();
 
             if($periodo_ativo):
                 $data_inicio_db = $periodo_ativo->data_inicio->format('Y-m-d');
@@ -128,9 +121,7 @@ class AcompanhamentoController extends PontoEletronicoController {
         
         $justificativas = PontoRazao::where(['ativo' => 1])->orderBy("descricao", "ASC")->get();
 
-        $periodos_lista = (Schema::hasTable('periodo_fechamento'))
-            ? PeriodoFechamento::orderBy('data_inicio', 'DESC')->get()
-            : collect();
+        $periodos_lista = PeriodoFechamento::orderBy('data_inicio', 'DESC')->get();
 
         if(!isset($periodo_ativo)) $periodo_ativo = null;
 
@@ -301,30 +292,28 @@ class AcompanhamentoController extends PontoEletronicoController {
 
         // ── Lookup de feriados para o intervalo ──
         $feriados_set = [];
-        if (Schema::hasTable('feriado')):
-            $year_ini = (int) (new \DateTime($inicio))->format('Y');
-            $year_fim = (int) (new \DateTime($fim))->format('Y');
+        $year_ini = (int) (new \DateTime($inicio))->format('Y');
+        $year_fim = (int) (new \DateTime($fim))->format('Y');
 
-            // Feriados com data exata dentro do intervalo
-            $diretos = Feriado::where('recorrente', 0)
-                ->whereBetween('data', [$inicio, $fim])
-                ->get();
-            foreach ($diretos as $f):
-                $feriados_set[$f->data->format('Y-m-d')] = $f->descricao ?? 'FERIADO';
-            endforeach;
+        // Feriados com data exata dentro do intervalo
+        $diretos = Feriado::where('recorrente', 0)
+            ->whereBetween('data', [$inicio, $fim])
+            ->get();
+        foreach ($diretos as $f):
+            $feriados_set[$f->data->format('Y-m-d')] = $f->descricao ?? 'FERIADO';
+        endforeach;
 
-            // Feriados recorrentes — projeta para todos os anos do intervalo
-            $recorrentes = Feriado::where('recorrente', 1)->get();
-            foreach ($recorrentes as $r):
-                $mes_dia = $r->data->format('m-d');
-                for ($y = $year_ini; $y <= $year_fim; $y++):
-                    $nova = $y.'-'.$mes_dia;
-                    if ($nova >= $inicio && $nova <= $fim && !isset($feriados_set[$nova])):
-                        $feriados_set[$nova] = $r->descricao ?? 'FERIADO';
-                    endif;
-                endfor;
-            endforeach;
-        endif;
+        // Feriados recorrentes — projeta para todos os anos do intervalo
+        $recorrentes = Feriado::where('recorrente', 1)->get();
+        foreach ($recorrentes as $r):
+            $mes_dia = $r->data->format('m-d');
+            for ($y = $year_ini; $y <= $year_fim; $y++):
+                $nova = $y.'-'.$mes_dia;
+                if ($nova >= $inicio && $nova <= $fim && !isset($feriados_set[$nova])):
+                    $feriados_set[$nova] = $r->descricao ?? 'FERIADO';
+                endif;
+            endfor;
+        endforeach;
 
         return view('pontoeletronico/acompanhamento/espelho-v2')
             ->with('data', $data)

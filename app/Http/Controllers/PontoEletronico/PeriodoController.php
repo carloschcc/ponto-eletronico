@@ -1,7 +1,5 @@
 <?php namespace App\Http\Controllers\PontoEletronico;
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use App\Http\Controllers\Controller;
 use Session;
 use App\PeriodoFechamento;
@@ -14,39 +12,6 @@ class PeriodoController extends PontoEletronicoController {
         $this->middleware('authPainelMiddleware');
     }
 
-    /* ─── tabelas on-the-fly ─── */
-
-    private function garantirTabela()
-    {
-        if (!Schema::hasTable('periodo_fechamento')):
-            Schema::create('periodo_fechamento', function(Blueprint $table) {
-                $table->increments('id');
-                $table->string('descricao', 100)->nullable();
-                $table->date('data_inicio');
-                $table->date('data_fim');
-                $table->tinyInteger('ativo')->default(0);
-                $table->timestamps();
-            });
-        elseif (!Schema::hasColumn('periodo_fechamento', 'ativo')):
-            Schema::table('periodo_fechamento', function(Blueprint $table) {
-                $table->tinyInteger('ativo')->default(0)->after('data_fim');
-            });
-        endif;
-    }
-
-    private function garantirTabelaFeriado()
-    {
-        if (!Schema::hasTable('feriado')):
-            Schema::create('feriado', function(Blueprint $table) {
-                $table->increments('id');
-                $table->date('data')->unique();
-                $table->string('descricao', 150)->nullable();
-                $table->tinyInteger('recorrente')->default(0);
-                $table->timestamps();
-            });
-        endif;
-    }
-
     /* ─── PERÍODOS ─── */
 
     public function index()
@@ -55,9 +20,6 @@ class PeriodoController extends PontoEletronicoController {
         if ($admin != 1):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
-
-        $this->garantirTabela();
-        $this->garantirTabelaFeriado();
 
         $periodos = PeriodoFechamento::orderBy('data_inicio', 'DESC')->get();
 
@@ -105,8 +67,6 @@ class PeriodoController extends PontoEletronicoController {
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
-        $this->garantirTabela();
-
         $id          = request()->input('id');
         $descricao   = request()->input('descricao');
         $data_inicio = request()->input('data_inicio');
@@ -151,8 +111,6 @@ class PeriodoController extends PontoEletronicoController {
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
-        $this->garantirTabela();
-
         PeriodoFechamento::query()->update(['ativo' => 0]);
         PeriodoFechamento::find($id)->update(['ativo' => 1]);
 
@@ -181,8 +139,6 @@ class PeriodoController extends PontoEletronicoController {
         if ($admin != 1):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
-
-        $this->garantirTabelaFeriado();
 
         $data_raw   = request()->input('data', '');
         $descricao  = request()->input('descricao', '');

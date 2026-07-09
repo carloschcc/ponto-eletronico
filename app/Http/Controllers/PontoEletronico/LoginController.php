@@ -30,13 +30,10 @@ class LoginController extends PontoEletronicoController {
         if(empty($cpf) OR empty($senha)):
             return redirect(getenv('APP_URL'));
         endif;
-        
-        $senha = hash('sha1', $senha);
 
-        $login = Usuario::where(['cpf' => $cpf, 'senha' => $senha, 'admin' => 0])->first();
-        
-                
-        if(isset($login->id)):
+        $login = Usuario::where(['cpf' => $cpf, 'admin' => 0])->first();
+
+        if($login AND $login->autenticar($senha)):
 
             Session::put('login.ponto.usuario_id', $login->id);
             Session::put('login.ponto.admin', $login->admin);

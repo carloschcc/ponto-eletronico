@@ -27,7 +27,6 @@ Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function(
   Route::get('/dashboard', 'DashboardPainelController@index');
 
   Route::get('/usuarios', 'UsuarioController@index');
-  Route::get('/setup/foto', 'UsuarioController@setupFoto');
   Route::get('/usuario/novo', 'UsuarioController@novo');
   Route::get('/usuario/editar/{id}', 'UsuarioController@editar');
   Route::get('/usuario/excluir/{id}', 'UsuarioController@excluir');

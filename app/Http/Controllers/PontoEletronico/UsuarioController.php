@@ -1,8 +1,7 @@
 <?php namespace App\Http\Controllers\PontoEletronico;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Hash;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
@@ -41,7 +40,7 @@ class UsuarioController extends PontoEletronicoController {
 
         $senha = Request::input('senha');
         if(!empty($senha)):
-            $usuario->senha = hash('sha1', $senha);
+            $usuario->senha = Hash::make($senha);
         endif;
 
         $cpf_banco   = Request::input('cpf_banco');
@@ -67,8 +66,6 @@ class UsuarioController extends PontoEletronicoController {
                 return redirect(getenv('APP_URL').'/painel/usuarios');
             endif;
         endif;
-
-        $this->garantirColunaMatricula();
 
         $usuario->nome      = Request::input('nome');
         $usuario->email     = $email;
@@ -131,7 +128,7 @@ class UsuarioController extends PontoEletronicoController {
 
         $usuario = Usuario::find($usuario_id);
 
-        if(hash('sha1', $senha_atual) !== $usuario->senha):
+        if(!$usuario->autenticar($senha_atual)):
             Session::put('status.msg', 'Senha atual incorreta.');
             return redirect(getenv('APP_URL').'/painel/minha-senha');
         endif;
@@ -146,38 +143,11 @@ class UsuarioController extends PontoEletronicoController {
             return redirect(getenv('APP_URL').'/painel/minha-senha');
         endif;
 
-        $usuario->senha = hash('sha1', $nova_senha);
+        $usuario->senha = Hash::make($nova_senha);
         $usuario->save();
 
         Session::put('status.msg', 'Senha alterada com sucesso!');
         return redirect(getenv('APP_URL').'/painel/minha-senha');
-    }
-
-    private function garantirColunaMatricula(){
-        if(!Schema::hasColumn('usuario', 'matricula')):
-            Schema::table('usuario', function(Blueprint $table){
-                $table->string('matricula', 50)->nullable()->after('cpf');
-            });
-        endif;
-    }
-
-    public function setupFoto(){
-
-        $admin = Session::get('login.ponto.painel.admin');
-        if($admin != 1):
-            return redirect(getenv('APP_URL').'/painel/');
-        endif;
-
-        if(Schema::hasColumn('usuario', 'foto')):
-            Session::put('status.msg', 'Coluna foto já existe. Nenhuma alteração necessária.');
-        else:
-            Schema::table('usuario', function(Blueprint $table){
-                $table->string('foto', 100)->nullable()->after('local');
-            });
-            Session::put('status.msg', 'Coluna foto criada com sucesso!');
-        endif;
-
-        return redirect(getenv('APP_URL').'/painel/usuarios');
     }
 
     public function desabilitar($id){

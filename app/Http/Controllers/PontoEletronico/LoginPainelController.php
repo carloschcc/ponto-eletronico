@@ -28,13 +28,10 @@ class LoginPainelController extends PontoEletronicoController {
         if(empty($cpf) OR empty($senha)):
             return redirect(getenv('APP_URL').'/painel');
         endif;
-        
-        $senha = hash('sha1', $senha);
-        
-        $login = Usuario::where(['cpf' => $cpf, 'senha' => $senha])->first();
-        
-        
-        if(isset($login->id)):
+
+        $login = Usuario::where(['cpf' => $cpf])->first();
+
+        if($login AND $login->autenticar($senha)):
 
             Session::put('login.ponto.painel.usuario_id', $login->id);
             Session::put('login.ponto.painel.admin', $login->admin);

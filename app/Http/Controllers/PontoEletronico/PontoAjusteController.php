@@ -12,7 +12,6 @@ use App\Ponto;
 use App\PontoAjuste;
 use App\PontoRazao;
 use App\PeriodoFechamento;
-use Illuminate\Support\Facades\Schema;
 
 
 class PontoAjusteController extends PontoEletronicoController {
@@ -37,13 +36,7 @@ class PontoAjusteController extends PontoEletronicoController {
             return view('pontoeletronico/ajuste/index-admin')->with('solicitacoes', $solicitacoes)->with('justificativas', $justificativas);
         else:
             // Descobre o período ativo para filtrar o histórico
-            $periodo_ativo = null;
-            if(Schema::hasTable('periodo_fechamento') && Schema::hasColumn('periodo_fechamento', 'ativo')):
-                $periodo_ativo = PeriodoFechamento::where('ativo', 1)->first();
-            elseif(Schema::hasTable('periodo_fechamento')):
-                $periodo_ativo = PeriodoFechamento::where('data_fim', '>=', Date('Y-m-d'))
-                    ->orderBy('data_inicio', 'ASC')->first();
-            endif;
+            $periodo_ativo = PeriodoFechamento::where('ativo', 1)->first();
 
             $query = PontoAjuste::where('usuario_id', $usuario_id)->with('pontoRazao');
 
