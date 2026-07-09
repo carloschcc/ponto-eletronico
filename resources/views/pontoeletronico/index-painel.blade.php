@@ -59,6 +59,12 @@
       </div>
     </form>
 
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="{{ $url_base }}/" class="btn btn-default btn-block">
+            <i class="fa fa-clock-o"></i> Voltar para registrar ponto
+        </a>
+    </div>
+
   </div>
   <!-- /.login-box-body -->
   
