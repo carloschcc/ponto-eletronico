@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Request;
 use Session;
 use App\PontoAjuste;
+use App\PeriodoFechamento;
 
 abstract class PontoEletronicoController extends Controller
 {
@@ -48,6 +49,72 @@ abstract class PontoEletronicoController extends Controller
             return false;
         endif;
 
+    }
+
+    /**
+     * Administradores e o perfil "Gestor de RH" têm acesso equivalente às
+     * telas de gestão do painel (Acompanhamento, Ajustes, Períodos,
+     * Colaboradores, Empregador). As restrições específicas do RH sobre
+     * a flag admin (não atribuir/remover admin, não desabilitar admin)
+     * ficam à parte, em UsuarioController. Configurações do sistema (menu
+     * "Configurações") NÃO entram aqui — são restritas a admin de verdade,
+     * ver painelEhAdmin().
+     */
+    protected function painelAcessoTotal()
+    {
+        return Session::get('login.ponto.painel.admin') == 1
+            || Session::get('login.ponto.painel.rh') == 1;
+    }
+
+    /**
+     * Admin "de verdade" — usado nas telas que nem o perfil Gestor de RH
+     * deve acessar (ex: Configurações do sistema, Console SQL).
+     */
+    protected function painelEhAdmin()
+    {
+        return Session::get('login.ponto.painel.admin') == 1;
+    }
+
+    /**
+     * Quem pode ver/aprovar solicitações de ajuste: administradores, RH e
+     * gerentes (o gerente só tem essa permissão, mais nenhuma outra).
+     */
+    protected function painelPodeCertificar()
+    {
+        return $this->painelAcessoTotal()
+            || Session::get('login.ponto.painel.gerente') == 1;
+    }
+
+    /**
+     * Verifica se a data cai dentro de um período de fechamento já
+     * encerrado/desativado (ativo=0) — nesse caso não se pode mais incluir
+     * batida nem solicitação de ajuste referente a essa data. Datas fora de
+     * qualquer período cadastrado não são afetadas.
+     */
+    protected function dataEmPeriodoEncerrado($data)
+    {
+        return PeriodoFechamento::where('ativo', 0)
+            ->where('data_inicio', '<=', $data)
+            ->where('data_fim', '>=', $data)
+            ->exists();
+    }
+
+    /**
+     * Gera o próximo NSR (Número Sequencial de Registro) exigido pela
+     * legislação de ponto eletrônico: monotônico, único, nunca reutilizado,
+     * atribuído no momento em que uma marcação (entrada/saída) é de fato
+     * gravada em `ponto` — seja batida direta, ajuste manual ou aprovação de
+     * solicitação. Cada chamador só deve gerar um NSR novo quando o campo
+     * ainda estiver vazio (ver uso em PontoController/PontoPainelController/
+     * PontoAjusteController), para não trocar o número de uma marcação já
+     * registrada a cada vez que a linha é salva de novo.
+     */
+    protected function gerarNsr($origem = null)
+    {
+        return DB::table('nsr_sequencia')->insertGetId([
+            'origem'    => $origem,
+            'criado_em' => now(),
+        ]);
     }
 
     protected function obterIpCliente()

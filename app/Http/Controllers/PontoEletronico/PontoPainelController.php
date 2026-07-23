@@ -13,20 +13,25 @@ use App\PontoAjuste;
 
 
 class PontoPainelController extends PontoEletronicoController {
-    
-    
+
+
     public function __construct()
     {
         $this->middleware('authPainelMiddleware');
-        
+
     }
-    
+
     public function ajuste(){
-        
+
+        if(!$this->painelAcessoTotal()):
+            Session::put('status.msg', 'Ajuste manual restrito a administradores e RH.');
+            return redirect(getenv('APP_URL').'/painel/acompanhamento');
+        endif;
+
         $url_base = getenv('APP_URL');
-        
+
         $usuario_id = Session::get('login.ponto.painel.usuario_id');
-        
+
         $ponto_id = Request::input('ponto_id');
         $tipo = Request::input('tipo');
         $data = Request::input('data');
@@ -35,20 +40,24 @@ class PontoPainelController extends PontoEletronicoController {
         $hora_saida = Request::input('hora_saida');
         $justificativa = Request::input('justificativa');
         $anexo = Request::input('anexo');
-        
+
         $data_arr = explode("/",$data);
         $data = $data_arr[2].'-'.$data_arr[1].'-'.$data_arr[0];
-        
-        
-        $arquivo_anexo = $_FILES["anexo"];
-        $varArquivo_anexo = $arquivo_anexo["name"];
+
+        if($this->dataEmPeriodoEncerrado($data)):
+            Session::put('status.msg', 'Não é possível incluir batida para uma data dentro de um período já encerrado.');
+            return redirect(getenv('APP_URL').'/painel/ajuste');
+        endif;
+
+        $arquivo_anexo = $_FILES['anexo'] ?? [];
+        $varArquivo_anexo = $arquivo_anexo['name'] ?? '';
         if($varArquivo_anexo != ''):
             $arquivo_nome_final_anexo = $this->upload(public_path('upload/razao') . DIRECTORY_SEPARATOR, $_FILES['anexo']);
         endif;
 
-               
+
         if($tipo == 'entrada' OR $tipo == 'saida'):
-        
+
             $ajuste = new PontoAjuste();
             $ajuste->ponto_id = $ponto_id;
             $ajuste->usuario_id = $usuario_id;
@@ -63,25 +72,31 @@ class PontoPainelController extends PontoEletronicoController {
             endif;
 
             $ajuste->save();
-            
-            
+
+
             if($tipo == 'entrada'):
                 $ponto = Ponto::find($ponto_id);
                 $ponto->entrada = $hora;
                 $ponto->entrada_status = 1;
+                if(empty($ponto->entrada_nsr)):
+                    $ponto->entrada_nsr = $this->gerarNsr('entrada');
+                endif;
                 $ponto->save();
             endif;
-            
+
             if($tipo == 'saida'):
                 $ponto = Ponto::find($ponto_id);
                 $ponto->saida = $hora;
                 $ponto->saida_status = 1;
+                if(empty($ponto->saida_nsr)):
+                    $ponto->saida_nsr = $this->gerarNsr('saida');
+                endif;
                 $ponto->save();
             endif;
-            
+
         endif;
-        
-        
+
+
         $msg = "Registro salvo com sucesso!";
         Session::put('status.msg', $msg);
 
@@ -92,9 +107,7 @@ class PontoPainelController extends PontoEletronicoController {
 
     public function excluirCampo($ponto_id, $tipo){
 
-        $usuario_admin = Session::get('login.ponto.painel.admin');
-
-        if($usuario_admin != 1):
+        if(!$this->painelAcessoTotal()):
             $msg = "Exclusão não permitida.";
             Session::put('status.msg', $msg);
             return redirect(getenv('APP_URL').'/painel/acompanhamento');
@@ -112,6 +125,7 @@ class PontoPainelController extends PontoEletronicoController {
             PontoAjuste::where(['ponto_id' => $ponto_id, 'tipo' => 'entrada'])->where('status', 0)->delete();
             $ponto->entrada = NULL;
             $ponto->entrada_status = NULL;
+            $ponto->entrada_nsr = NULL;
             $ponto->save();
         endif;
 
@@ -119,6 +133,7 @@ class PontoPainelController extends PontoEletronicoController {
             PontoAjuste::where(['ponto_id' => $ponto_id, 'tipo' => 'saida'])->where('status', 0)->delete();
             $ponto->saida = NULL;
             $ponto->saida_status = NULL;
+            $ponto->saida_nsr = NULL;
             $ponto->save();
         endif;
 

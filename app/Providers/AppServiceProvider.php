@@ -13,33 +13,28 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot()
     {
-        $tz = $this->detectarTimezoneDoSistema();
+        $tz = $this->resolverTimezoneDoNegocio();
         date_default_timezone_set($tz);
         config(['app.timezone' => $tz]);
     }
 
-    private function detectarTimezoneDoSistema(): string
+    /**
+     * O horário de registro de ponto deve sempre ser o de Brasília/São Paulo,
+     * independente do timezone do SO onde o PHP roda. Não detectamos mais o
+     * timezone do sistema operacional: em containers Docker a imagem base
+     * normalmente vem com "Etc/UTC" em /etc/timezone, que é um timezone
+     * válido porém errado para o negócio, e a detecção anterior aceitava
+     * esse valor achando que era uma configuração intencional do servidor.
+     * Só é possível sobrepor via env APP_TIMEZONE, para casos excepcionais.
+     */
+    private function resolverTimezoneDoNegocio(): string
     {
-        // Debian/Ubuntu: /etc/timezone contém "America/Sao_Paulo"
-        if (file_exists('/etc/timezone')) {
-            $tz = trim(file_get_contents('/etc/timezone'));
-            if ($tz !== '' && @timezone_open($tz) !== false) {
-                return $tz;
-            }
+        $tz = env('APP_TIMEZONE', config('app.timezone', 'America/Sao_Paulo'));
+
+        if (!$tz || @timezone_open($tz) === false) {
+            $tz = 'America/Sao_Paulo';
         }
 
-        // RedHat/CentOS/Alpine: /etc/localtime é symlink para /usr/share/zoneinfo/...
-        if (is_link('/etc/localtime')) {
-            $link = readlink('/etc/localtime');
-            if (preg_match('#zoneinfo/(.+)$#', $link, $m)) {
-                $tz = $m[1];
-                if (@timezone_open($tz) !== false) {
-                    return $tz;
-                }
-            }
-        }
-
-        // Fallback garantido: São Paulo (UTC-3)
-        return 'America/Sao_Paulo';
+        return $tz;
     }
 }

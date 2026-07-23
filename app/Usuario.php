@@ -19,7 +19,7 @@ class Usuario extends Model
     }
 
 
-    protected $fillable = ['nome', 'cpf', 'matricula', 'email', 'senha', 'cargo', 'admin', 'ativo', 'local', 'regime', 'foto'];
+    protected $fillable = ['nome', 'cpf', 'matricula', 'email', 'senha', 'cargo', 'admin', 'gerente', 'rh', 'ativo', 'local', 'regime', 'foto'];
 
     /**
      * Verifica a senha informada contra o hash armazenado. Senhas antigas

@@ -1,11 +1,21 @@
 <?php $url_base = getenv('URL_BASE'); ?>
+<?php
+$meu_id = Session::get('login.ponto.painel.usuario_id');
+if(!empty($periodo_ativo)):
+    $imp_inicio = $periodo_ativo->data_inicio->format('Y-m-d');
+    $imp_fim = $periodo_ativo->data_fim->format('Y-m-d');
+else:
+    $imp_inicio = date('Y-m-01');
+    $imp_fim = date('Y-m-d');
+endif;
+?>
 @extends('pontoeletronico.painel')
 
 @section('conteudo')
     <!-- Content Header (Page header) -->
     <section class="content-header">
       <h1>
-        Solicitações de Ajuste 
+        Solicitações de Ajuste
       </h1>
     </section>
 
@@ -13,9 +23,9 @@
     <section class="content">
       <div class="row">
         <div class="col-xs-12">
-          
+
           <div class="box">
-            
+
             <div class="box-header">
                 <div class="col-md-7" style="padding-left: 0;">
                     @if(!empty($periodo_ativo))
@@ -31,8 +41,9 @@
                 </div>
                 <div class="col-md-5 text-right">
                     <a href='#modal-solicitacao' data-toggle="modal" class="btn btn-md btn-success"><i class="fa fa-plus"></i> Solicitar Inclusão de Ajuste</a>
+                    <a href="/painel/espelho-v2/{{ $meu_id }}/{{ $imp_inicio }}/{{ $imp_fim }}" target="_blank" class="btn btn-md btn-warning"><i class="fa fa-file-text"></i> Imprimir Ponto</a>
                 </div>
-            </div>  
+            </div>
 
             <div class="box-body table-responsive">
               <table class="table table-bordered table-striped">
@@ -51,38 +62,42 @@
                 <tbody>
                 <?php
                 $registro_dia = '';
-                
+
                 ?>
                 @foreach($solicitacoes as $solicitacao)
-                    
+
                     <tr>
                       <td>{{ $solicitacao->created_at->format("d/m/Y H:i:s") }}</td>
                       <td>{{ ucfirst($solicitacao->tipo) }}</td>
                       <td>{{ $solicitacao->data->format("d/m/Y") }}</td>
                       <td>{{ substr($solicitacao->hora, 0, 5) }}</td>
-                      <td>{{ $solicitacao->pontoRazao->descricao }}</td>
+                      <td>{{ optional($solicitacao->pontoRazao)->descricao ?? '—' }}</td>
                       <td><a href="{{ $url_base }}/upload/razao/{{ $solicitacao->anexo }}">{{ $solicitacao->anexo }}</a></td>
                       <td>
-                         @if($solicitacao->status == 0) 
+                         @if($solicitacao->status == 0)
                             Pendente
                          @endif
-                         
+
+                         @if($solicitacao->status == 3)
+                            Pré-aprovado
+                         @endif
+
                          @if($solicitacao->status == 1)
                             Aprovado
                          @endif
-                         
+
                          @if($solicitacao->status == 2)
                             Não aprovado
                          @endif
                       </td>
                       <td>
                          @if($solicitacao->status == 0)
-                         <a href='ajuste/excluir/{{ $solicitacao->id }}' class="btn btn-xs btn-danger"><i class='fa fa-ban'></i> Excluir</a>
+                         <a href='ajuste/excluir/{{ $solicitacao->id }}' class="btn btn-acao btn-danger"><i class='fa fa-ban'></i> Excluir</a>
                          @endif
                       </td>
-                      
+
                     </tr>
-                @endforeach 
+                @endforeach
                 </tbody>
               </table>
             </div>
@@ -95,7 +110,7 @@
       <!-- /.row -->
     </section>
     <!-- /.content -->
-    
+
     <div id="modal-solicitacao" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-md">
             <div class="modal-content">
@@ -130,7 +145,6 @@
                                 <div class="form-group">
                                     <label>Justificativa</label>
                                     <select name="justificativa" class="form-control" required>
-                                        <option value=""></option>
                                         @foreach($justificativas as $justificativa)
                                         <option value="{{ $justificativa->id }}">{{ $justificativa->descricao }}</option>
                                         @endforeach
@@ -152,7 +166,7 @@
                 <br>
             </div>
         </div>
-    </div>    
+    </div>
 
 @push('scripts')
 <script>

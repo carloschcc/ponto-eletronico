@@ -8,6 +8,28 @@
 <section class="content">
   <div class="row">
 
+    {{-- Nome do Sistema --}}
+    <div class="col-md-4">
+      <div class="box box-primary">
+        <div class="box-header with-border">
+          <h3 class="box-title"><i class="fa fa-font"></i> Nome do Sistema</h3>
+        </div>
+        <div class="box-body">
+          <p class="text-muted" style="font-size:11px; margin-bottom:10px;">
+            Aparece no título da aba do navegador e nos relatórios/impressões de ponto.
+          </p>
+          <form method="POST" action="{{ getenv('APP_URL') }}/painel/configuracao/nome">
+            {{ csrf_field() }}
+            <div class="form-group">
+              <label>Nome exibido</label>
+              <input type="text" name="nome_sistema" class="form-control" maxlength="100" value="{{ $nome_sistema }}" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-save"></i> Salvar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
     {{-- Logo Principal (sistema) --}}
     <div class="col-md-4">
       <div class="box box-primary">

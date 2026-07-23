@@ -97,17 +97,24 @@ class PontoController extends PontoEletronicoController {
         $habilitar_localizacao = Configuracao::valor('PONTO_LOCALIZACAO_HABILITAR', '0');
         $latitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LATITUDE', '');
         $longitude_cadastrada = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
+        $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
 
         $gps_lat_raw = Session::get('status.gps_latitude');
         $gps_lon_raw = Session::get('status.gps_longitude');
         $gps_precisao_raw = Session::get('status.gps_precisao');
-        Session::forget(['status.gps_latitude', 'status.gps_longitude', 'status.gps_precisao']);
+        Session::forget(['status.gps_latitude', 'status.gps_longitude', 'status.gps_precisao', 'status.area', 'status.hora_registrada']);
 
         if ($area !== 'entrada' && $area !== 'saida') {
             return redirect(getenv('APP_URL').'/dashboard');
         }
 
         $registro_ip = $this->obterIpCliente();
+
+        if (!$this->ipPermitido($registro_ip, $this->parseIpsPermitidos($ips_permitidos))) {
+            Session::put('status.msg', 'Seu IP não está na lista de IPs permitidos para registrar ponto.');
+            return redirect(getenv('APP_URL').'/dashboard');
+        }
+
         [$localizacao_registro, $fonte_localizacao] = $this->resolverLocalizacao($gps_lat_raw, $gps_lon_raw, $gps_precisao_raw);
         $observacoes_registro = $this->montarObservacoesRegistro($registro_ip, $localizacao_registro, $fonte_localizacao, $habilitar_localizacao, $latitude_cadastrada, $longitude_cadastrada);
 
@@ -143,6 +150,7 @@ class PontoController extends PontoEletronicoController {
         if ($area === 'entrada') {
             $ponto->entrada = $hora_registrada;
             $ponto->entrada_status = 0;
+            $ponto->entrada_nsr = $this->gerarNsr('entrada');
             $ponto->entrada_ip = $registro_ip;
             $ponto->entrada_latitude = $localizacao_registro['latitude'] ?? null;
             $ponto->entrada_longitude = $localizacao_registro['longitude'] ?? null;
@@ -151,6 +159,7 @@ class PontoController extends PontoEletronicoController {
         } else {
             $ponto->saida = $hora_registrada;
             $ponto->saida_status = 0;
+            $ponto->saida_nsr = $this->gerarNsr('saida');
             $ponto->saida_ip = $registro_ip;
             $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
             $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;
@@ -167,6 +176,9 @@ class PontoController extends PontoEletronicoController {
     {
         $ponto->saida = $hora_registrada;
         $ponto->saida_status = 0;
+        if(empty($ponto->saida_nsr)):
+            $ponto->saida_nsr = $this->gerarNsr('saida');
+        endif;
         $ponto->saida_ip = $registro_ip;
         $ponto->saida_latitude = $localizacao_registro['latitude'] ?? null;
         $ponto->saida_longitude = $localizacao_registro['longitude'] ?? null;

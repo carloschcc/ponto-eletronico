@@ -10,7 +10,7 @@ $_foto_registro    = ($_usuario_registro && $_usuario_registro->foto)
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ getenv('APP_NAME') }} | Ponto Eletrônico</title>
+  <title>{{ App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico') }} | Ponto Eletrônico</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
   <!-- Bootstrap 3.3.6 -->
@@ -164,7 +164,7 @@ $_foto_registro    = ($_usuario_registro && $_usuario_registro->foto)
   <!-- /.content-wrapper -->
 
   <footer class="main-footer">
-    <strong>Copyright &copy; {{ Date("Y") }} <a href="https://ilab4.me">{{ getenv('APP_NAME') }}</a>.</strong> Todos os direitos reservados.
+    <strong>Copyright &copy; {{ Date("Y") }} <a href="https://ilab4.me">{{ App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico') }}</a>.</strong> Todos os direitos reservados.
   </footer>
 
  

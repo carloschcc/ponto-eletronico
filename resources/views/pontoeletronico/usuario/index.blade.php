@@ -1,4 +1,4 @@
-<?php $url_base = getenv('URL_BASE'); ?>
+<?php $url_base = getenv('APP_URL'); ?>
 @extends('pontoeletronico.painel')
 
 @section('conteudo')
@@ -54,12 +54,12 @@
                       <td>{{ $usuario->local }}</td>
                       <td>{{ ($usuario->ativo == 1) ? "Ativo" : "Inativo" }}</td>
                       <td>
-                          <a href='{{ $url_base }}/painel/usuario/editar/{{ $usuario->id }}' class="btn btn-xs btn-default"><i class="fa fa-pencil"></i> Editar</a>
+                          <a href='{{ $url_base }}/painel/usuario/editar/{{ $usuario->id }}' class="btn btn-acao btn-default"><i class="fa fa-pencil"></i> Editar</a>
                           @if($usuario->admin != 1)
                               @if($usuario->ativo == 1)
-                                <a href='#' data-url="{{ $url_base }}/painel/usuario/desabilitar/{{ $usuario->id }}" data-msg="Deseja desabilitar esse colaborador?" class="btn btn-xs btn-danger btnExluir"><i class="fa fa-ban"></i> Desabilitar</a>
+                                <a href='#' data-url="{{ $url_base }}/painel/usuario/desabilitar/{{ $usuario->id }}" data-msg="Deseja desabilitar esse colaborador?" class="btn btn-acao btn-danger btnExluir"><i class="fa fa-ban"></i> Desabilitar</a>
                               @else
-                                <a href='#' data-url="{{ $url_base }}/painel/usuario/habilitar/{{ $usuario->id }}" data-msg="Deseja habilitar esse colaborador?" class="btn btn-xs btn-success btnExluir"><i class="fa fa-ban"></i> Habilitar</a>
+                                <a href='#' data-url="{{ $url_base }}/painel/usuario/habilitar/{{ $usuario->id }}" data-msg="Deseja habilitar esse colaborador?" class="btn btn-acao btn-success btnExluir"><i class="fa fa-ban"></i> Habilitar</a>
                               @endif
                           @else
                           <span class="badge bg-black">Usuário Administrador</span>

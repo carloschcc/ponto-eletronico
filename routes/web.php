@@ -9,7 +9,7 @@ Route::group(['namespace' => 'PontoEletronico'], function()
 {
   Route::get('/', 'IndexController@index');
 
-  Route::post('/login', 'LoginController@login');
+  Route::post('/login', 'LoginController@login')->middleware('throttle:5,1');
   Route::post('/registrar', 'PontoController@registrar_validando');
   Route::get('/registrar', 'PontoController@registrar');
   Route::get('/dashboard', 'DashboardController@index');
@@ -20,7 +20,7 @@ Route::group(['namespace' => 'PontoEletronico'], function()
 
 Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function()
 {
-  Route::post('/login', 'LoginPainelController@login');
+  Route::post('/login', 'LoginPainelController@login')->middleware('throttle:5,1');
 
   Route::get('/', 'IndexPainelController@index');
 
@@ -51,6 +51,15 @@ Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function(
   Route::post('/certificacao/salvar', 'PontoAjusteController@certificar');
   Route::post('/certificacao/bulk', 'PontoAjusteController@certificarBulk');
 
+  Route::get('/ferias', 'FeriasController@index');
+  Route::get('/ferias/imprimir', 'FeriasController@imprimir');
+  Route::post('/ferias/solicitar', 'FeriasController@solicitar');
+  Route::get('/ferias/excluir/{id}', 'FeriasController@excluir');
+  Route::post('/ferias/certificar', 'FeriasController@certificar');
+  Route::post('/ferias/certificar/bulk', 'FeriasController@certificarBulk');
+  Route::post('/ferias/editar', 'FeriasController@editar');
+  Route::get('/ferias/admin/excluir/{id}', 'FeriasController@excluirAdmin');
+
   Route::get('/excel-acompanhamento/{usuario}/{inicio}/{fim}', 'AcompanhamentoController@index_download');
   Route::get('/export-txt/{usuario}/{inicio}/{fim}', 'AcompanhamentoController@exportarTxt');
   Route::get('/relatorio/{usuario_id}/{inicio}/{fim}', 'AcompanhamentoController@relatorio');
@@ -71,6 +80,13 @@ Route::group(['prefix' => 'painel', 'namespace' => 'PontoEletronico'], function(
   Route::get('/configuracao', 'ConfiguracaoController@index');
   Route::post('/configuracao/localizacao', 'ConfiguracaoController@salvarLocalizacao');
   Route::post('/configuracao/logo', 'ConfiguracaoController@salvarLogo');
+  Route::post('/configuracao/nome', 'ConfiguracaoController@salvarNome');
+
+  Route::get('/empregador', 'EmpregadorController@index');
+  Route::post('/empregador/salvar', 'EmpregadorController@salvar');
+
+  Route::get('/sql-console', 'SqlConsoleController@index');
+  Route::post('/sql-console/executar', 'SqlConsoleController@executar');
 
   Route::get('/sair', 'LoginPainelController@sair');
 

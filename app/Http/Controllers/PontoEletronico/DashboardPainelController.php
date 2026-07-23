@@ -21,7 +21,7 @@ class DashboardPainelController extends PontoEletronicoController {
 
     public function index(){
 
-        $admin      = Session::get('login.ponto.painel.admin');
+        $admin      = $this->painelAcessoTotal() ? 1 : 0;
         $usuario_id = Session::get('login.ponto.painel.usuario_id');
 
         $hoje       = Date("Y-m-d");

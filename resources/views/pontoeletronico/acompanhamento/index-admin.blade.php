@@ -1,6 +1,6 @@
 <?php $url_base = getenv('URL_BASE'); ?>
 <?php
-$admin = Session::get('login.ponto.painel.admin');
+$admin = (Session::get('login.ponto.painel.admin') == 1 OR Session::get('login.ponto.painel.rh') == 1) ? 1 : 0;
 ?>
 @extends('pontoeletronico.painel')
 
@@ -319,12 +319,13 @@ $admin = Session::get('login.ponto.painel.admin');
                                 <i class="fas fa-exclamation-triangle text-yellow"></i>
                               @else
                                 <?php
+                                $varCor = '#777777';
                                 if ($registro->entrada_status == 0) $varCor = '#005599';
                                 if ($registro->entrada_status == 1) $varCor = '#D39745';
                                 if ($registro->entrada_status == 2) $varCor = '#67b021';
                                 ?>
                                 <span style="color: <?=$varCor?>;">{{ substr($registro->entrada, 0, 5) }}</span>
-                                <a href="#" data-url="/painel/ponto/excluir-campo/{{ $registro->id }}/entrada" data-msg="Deseja excluir a batida de ENTRADA deste dia?" class="btn btn-xs btn-danger btnExluir" style="margin-left:3px;" title="Excluir entrada"><i class="fa fa-trash"></i></a>
+                                <a href="#" data-url="/painel/ponto/excluir-campo/{{ $registro->id }}/entrada" data-msg="Deseja excluir a batida de ENTRADA deste dia?" class="btn btn-acao btn-danger btnExluir" style="margin-left:3px;" title="Excluir entrada"><i class="fa fa-trash"></i></a>
                               @endif
                           </td>
                           <td>
@@ -332,12 +333,13 @@ $admin = Session::get('login.ponto.painel.admin');
                                 <i class="fas fa-exclamation-triangle text-yellow"></i>
                               @else
                                 <?php
+                                $varCor = '#777777';
                                 if ($registro->saida_status == 0) $varCor = '#005599';
                                 if ($registro->saida_status == 1) $varCor = '#D39745';
                                 if ($registro->saida_status == 2) $varCor = '#67b021';
                                 ?>
                                 <span style="color: <?=$varCor?>;">{{ substr($registro->saida, 0, 5) }}</span>
-                                <a href="#" data-url="/painel/ponto/excluir-campo/{{ $registro->id }}/saida" data-msg="Deseja excluir a batida de SAÍDA deste dia?" class="btn btn-xs btn-danger btnExluir" style="margin-left:3px;" title="Excluir saída"><i class="fa fa-trash"></i></a>
+                                <a href="#" data-url="/painel/ponto/excluir-campo/{{ $registro->id }}/saida" data-msg="Deseja excluir a batida de SAÍDA deste dia?" class="btn btn-acao btn-danger btnExluir" style="margin-left:3px;" title="Excluir saída"><i class="fa fa-trash"></i></a>
                               @endif
                           </td>
                           <td><?=$horas_trabalhadas?></td>

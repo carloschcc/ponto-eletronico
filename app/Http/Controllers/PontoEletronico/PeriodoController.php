@@ -16,8 +16,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function index()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -62,8 +61,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function salvar()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -93,8 +91,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function excluir($id)
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -106,8 +103,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function ativar($id)
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -120,8 +116,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function desativar($id)
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -135,8 +130,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function salvarFeriado()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 
@@ -167,8 +161,7 @@ class PeriodoController extends PontoEletronicoController {
 
     public function excluirFeriado($id)
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1):
+        if (!$this->painelAcessoTotal()):
             return redirect(getenv('APP_URL').'/painel/');
         endif;
 

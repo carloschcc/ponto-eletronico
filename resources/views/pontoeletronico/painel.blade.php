@@ -1,6 +1,8 @@
 <?php $url_base = getenv('APP_URL'); ?>
 <?php
 $admin = Session::get('login.ponto.painel.admin');
+$gerente = Session::get('login.ponto.painel.gerente');
+$rh = Session::get('login.ponto.painel.rh');
 $_usuario_logado = App\Usuario::find(Session::get('login.ponto.painel.usuario_id'));
 $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
     ? $url_base.'/img/foto/'.$_usuario_logado->foto
@@ -11,7 +13,7 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>{{ getenv('APP_NAME') }} | Ponto Eletrônico | Painel</title>
+  <title>{{ App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico') }} | Ponto Eletrônico | Painel</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
   <!-- Bootstrap 3.3.6 -->
@@ -24,7 +26,7 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/bower_components/datatables/dataTables.bootstrap.min.css">
   <!-- Theme style -->
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/dist/css/AdminLTE.min.css">
-  
+
   <!-- AdminLTE Skins. Choose a skin from the css/skins
        folder instead of downloading all of them to reduce the load. -->
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/dist/css/skins/_all-skins.min.css">
@@ -32,10 +34,10 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/bower_components/bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css">
 
   <link href="{{ $url_base }}/adminlte/plugins/sweet-alert/sweet-alert.css" rel="stylesheet">
-  
+
   <!-- iCheck for checkboxes and radio inputs -->
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/bower_components/iCheck/all.css">
-  
+
   <link href="{{ $url_base }}/adminlte/plugins/fileuploader/font/font-fileuploader.css" rel="stylesheet">
   <link href="{{ $url_base }}/adminlte/plugins/fileuploader/css/jquery.fileuploader.min.css" media="all" rel="stylesheet">
   <link href="{{ $url_base }}/adminlte/plugins/fileuploader/css/jquery.fileuploader-theme-thumbnails.css" media="all" rel="stylesheet">
@@ -43,24 +45,44 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
     <!-- fullCalendar -->
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/bower_components/fullcalendar/dist/fullcalendar.min.css">
   <link rel="stylesheet" href="{{ $url_base }}/adminlte/bower_components/fullcalendar/dist/fullcalendar.print.min.css" media="print">
-  
+
   <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
   <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
   <!--[if lt IE 9]>
   <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
   <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
   <![endif]-->
-  
+
   <!-- Google Font -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
+
+  <style>
+    /* Botões de editar/excluir do painel: um pouco maiores que o padrão
+       .btn-xs do Bootstrap, porém menores que os .btn-sm da tela de
+       Períodos. Encolhe mais um pouco em telas pequenas (<768px),
+       acompanhando os breakpoints responsivos do próprio Bootstrap. */
+    .btn-acao {
+      padding: 3px 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      border-radius: 3px;
+    }
+    @media (max-width: 767px) {
+      .btn-acao {
+        padding: 2px 6px;
+        font-size: 11px;
+      }
+    }
+  </style>
+
   @stack('styles')
 </head>
 <body class="hold-transition skin-black sidebar-mini">
 <!-- Site wrapper -->
 <div class="wrapper">
 
-  
-    
+
+
   <header class="main-header">
 
     <!-- Logo -->
@@ -80,7 +102,7 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
       <!-- Navbar Right Menu -->
       <div class="navbar-custom-menu">
         <ul class="nav navbar-nav">
-          
+
           <!-- User Account Menu -->
           <li class="dropdown user user-menu">
             <!-- Menu Toggle Button -->
@@ -102,6 +124,7 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
               <li class="user-footer">
                 <div class="pull-left">
                   <a href="{{ $url_base }}/painel/minha-senha" class="btn btn-default btn-flat">Alterar Senha</a>
+                  <a href="{{ $url_base }}/painel/sair" class="btn btn-default btn-flat">Sair</a>
                 </div>
               </li>
             </ul>
@@ -109,8 +132,8 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
         </ul>
       </div>
     </nav>
-  </header>  
-    
+  </header>
+
 
   <!-- =============================================== -->
 
@@ -118,7 +141,7 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
   <aside class="main-sidebar">
     <!-- sidebar: style can be found in sidebar.less -->
     <section class="sidebar">
-      
+
       <!-- Sidebar user panel (optional) -->
       <div class="user-panel">
         <div class="pull-left image">
@@ -131,12 +154,12 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
         </div>
       </div>
 
-      <!-- /.search form -->  
-        
+      <!-- /.search form -->
+
       <!-- sidebar menu: : style can be found in sidebar.less -->
       <ul class="sidebar-menu" data-widget="tree">
-        
-        @if($admin == 1)
+
+        @if($admin == 1 OR $rh == 1)
         <li>
           <a href="{{ $url_base }}/painel/dashboard">
             <i class="fas fa-tachometer-alt"></i>
@@ -156,6 +179,12 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
           </a>
         </li>
         <li>
+          <a href="{{ $url_base }}/painel/ferias">
+            <i class="fa fa-umbrella-beach"></i>
+            <span>Férias</span>
+          </a>
+        </li>
+        <li>
           <a href="{{ $url_base }}/painel/periodo">
             <i class="fa fa-calendar"></i>
             <span>Períodos</span>
@@ -168,11 +197,25 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
           </a>
         </li>
         <li>
+          <a href="{{ $url_base }}/painel/empregador">
+            <i class="fa fa-building"></i>
+            <span>Empregador</span>
+          </a>
+        </li>
+        @if($admin == 1)
+        <li>
           <a href="{{ $url_base }}/painel/configuracao">
             <i class="fa fa-cog"></i>
             <span>Configurações</span>
           </a>
         </li>
+        <li>
+          <a href="{{ $url_base }}/painel/sql-console">
+            <i class="fa fa-database"></i>
+            <span>Console SQL</span>
+          </a>
+        </li>
+        @endif
         @else
         <li>
           <a href="{{ $url_base }}/painel/dashboard">
@@ -181,60 +224,59 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
           </a>
         </li>
         <li>
-          <a href="{{ $url_base }}/painel/acompanhamento">
-            <i class="far fa-clock"></i>
-            <span>Acompanhamento</span>
-          </a>
-        </li>
-        <li>
-          <a href="{{ $url_base }}/painel/ajuste">
-            <i class="far fa-calendar-alt"></i>
+          <a href="{{ $url_base }}/painel/certificacao">
+            <i class="far fa-calendar-check"></i>
             <span>Ajustes</span>
           </a>
         </li>
-        
+        <li>
+          <a href="{{ $url_base }}/painel/ferias">
+            <i class="fa fa-umbrella-beach"></i>
+            <span>Férias</span>
+          </a>
+        </li>
         @endif
-        
-        
+
+
         <li>
           <a href="{{ $url_base }}/painel/sair">
             <i class="fa fa-sign-out"></i>
             <span>Sair</span>
           </a>
         </li>
-        
-        
+
+
       </ul>
     </section>
     <!-- /.sidebar -->
   </aside>
-  
-  
+
+
   <!-- =============================================== -->
 
   <!-- Content Wrapper. Contains page content -->
   <div class="content-wrapper">
-      
-     
-    @yield('conteudo')  
-    
-    
-    
+
+
+    @yield('conteudo')
+
+
+
   </div>
   <!-- /.content-wrapper -->
 
   <footer class="main-footer">
-    <strong>Copyright &copy; {{ Date("Y") }} <a href="https://ilab4.me">{{ getenv('APP_NAME') }}</a>.</strong> Todos os direitos reservados.
+    <strong>Copyright &copy; {{ Date("Y") }} <a href="https://ilab4.me">{{ App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico') }}</a>.</strong> Todos os direitos reservados.
   </footer>
 
- 
+
   <!-- /.control-sidebar -->
   <!-- Add the sidebar's background. This div must be placed
        immediately after the control sidebar -->
   <div class="control-sidebar-bg"></div>
-  
+
   <input type="hidden" id="url_base" value="{{ $url_base }}">
-  
+
 </div>
 <!-- ./wrapper -->
 
@@ -285,14 +327,14 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
             $('.cpf').mask('000.000.000-00');
             $('.time').mask('00:00');
     });
-    
+
     function setaDadosModal(id, tipo, data_ajuste, hora) {
-        
+
         var id = id;
         var tipo = tipo;
         var data_ajuste = data_ajuste;
         var hora = hora;
-        
+
         if(tipo == 'entrada'){
             $('#tipo-entrada-'+id).prop("checked", true);
             $('#tipo-saida-'+id).prop("checked", false);
@@ -307,17 +349,17 @@ $_foto_logado = ($_usuario_logado && $_usuario_logado->foto)
         $("#hora-"+id).val(hora);
 
     }
-    
+
 </script>
 
 <script>
 $(document).on('click', '.btnExluir', function(e) {
-    
+
     event.preventDefault();
-    
+
     var url = $(this).data('url');
     var msg = $(this).data('msg');
-    
+
     swal({
         title: msg,
         type: "warning",
@@ -333,8 +375,8 @@ $(document).on('click', '.btnExluir', function(e) {
             window.location.href = url;
         }
       });
-    
-});    
+
+});
 </script>
 
 
@@ -375,7 +417,7 @@ $(document).on('click', '.btnExluir', function(e) {
   $(function () {
 
     $('#example1').DataTable({
-      "responsive": true,  
+      "responsive": true,
       "paging": true,
       "lengthChange": false,
       "searching": true,
@@ -399,7 +441,7 @@ $(document).on('click', '.btnExluir', function(e) {
         }
     });
   });
-  
+
 </script>
 
 <script>
@@ -411,7 +453,7 @@ $(document).on('click', '.btnExluir', function(e) {
 
       $(".datepicker").bootstrapDP({
           autoclose: true,
-          format: "dd/mm/yyyy", 
+          format: "dd/mm/yyyy",
           language: "pt-BR",
           showOtherMonths: true,
           selectOtherMonths: true,
@@ -420,10 +462,10 @@ $(document).on('click', '.btnExluir', function(e) {
           prevText: "Anterior",
           orientation: "bottom"
       });
-      
+
       $("#datepicker").bootstrapDP({
           autoclose: true,
-          format: "dd/mm/yyyy", 
+          format: "dd/mm/yyyy",
           language: "pt-BR",
           showOtherMonths: true,
           selectOtherMonths: true,
@@ -431,18 +473,18 @@ $(document).on('click', '.btnExluir', function(e) {
           nextText: "Próximo",
           prevText: "Anterior"
       });
-      
+
     });
 </script>
 
 <script>
 $(document).on('click', '.btnExluir', function(e) {
-    
+
     event.preventDefault();
-    
+
     var url = $(this).data('url');
     var msg = $(this).data('msg');
-    
+
     swal({
         title: msg,
         type: "warning",
@@ -458,8 +500,8 @@ $(document).on('click', '.btnExluir', function(e) {
             window.location.href = url;
         }
       });
-    
-});    
+
+});
 </script>
 
 
@@ -470,14 +512,14 @@ if (Session::has('status.msg')){
 
     $error_msg = Session::get("status.msg");
     Session::forget('status.msg');
-    
+
     if (isset($error_msg) AND $error_msg != ""):
         echo("<script>swal(\"$error_msg\");</script>");
     endif;
-}    
-?>   
+}
+?>
 
-<?php 
+<?php
 if(isset($error_redirect) AND $error_redirect != ""):
     header("location: $error_redirect");
 endif;

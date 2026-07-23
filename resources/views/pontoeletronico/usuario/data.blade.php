@@ -11,12 +11,17 @@ if(isset($u)):
     $return_senha = $u->senha;
     $return_cargo = $u->cargo;
     $return_admin = $u->admin;
+    $return_gerente = $u->gerente;
+    $return_rh = $u->rh;
     $return_local = $u->local;
     $return_ativo = $u->ativo;
     $varCheckAtivo = ($return_ativo == 1)? 'checked' : '';
+    $varCheckAdmin = ($return_admin == 1)? 'checked' : '';
+    $varCheckGerente = ($return_gerente == 1)? 'checked' : '';
+    $varCheckRh = ($return_rh == 1)? 'checked' : '';
     $varRequired = '';
-        
-else:    
+
+else:
 
     $acao = "novo";
     $return_id = '';
@@ -27,10 +32,15 @@ else:
     $return_senha = '';
     $return_cargo = '';
     $return_admin = '';
+    $return_gerente = '';
+    $return_rh = '';
     $return_local = '';
     $varCheckAtivo = 'checked';
+    $varCheckAdmin = '';
+    $varCheckGerente = '';
+    $varCheckRh = '';
     $varRequired = 'required';
-    
+
 endif;
 ?>
 
@@ -59,18 +69,17 @@ endif;
             </div>
             <!-- /.box-header -->
             <!-- form start -->
-            
-            
+
+
             <form id="formUsuario" method="post" action="{{ $url_base }}/painel/usuario/salvar" enctype="multipart/form-data">
                 {{ csrf_field() }}
                 <input type="hidden" name="id" value="<?php print $return_id; ?>">
                 <input type="hidden" name="email_banco" value="<?php print $return_email; ?>">
                 <input type="hidden" name="cpf_banco" value="<?php print $return_cpf; ?>">
-                <input type="hidden" name="admin" value="<?php print $return_admin; ?>">
                 <!-- text input -->
 
                 <div class="box-body">
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -85,7 +94,7 @@ endif;
                                 </div>
                             </div>
                         </div>
-                    
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
@@ -100,7 +109,7 @@ endif;
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
@@ -127,7 +136,7 @@ endif;
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="row">
                             <div class="col-md-4">
                                 <div class="form-group">
@@ -154,17 +163,36 @@ endif;
                               Ativo
                             </label>
                           </div>
+                          <label>Perfil do colaborador</label>
+                          <div class="checkbox">
+                            <label>
+                              <input type="checkbox" name="admin" value="1" <?php print $varCheckAdmin; ?>>
+                              Administrador
+                            </label>
+                          </div>
+                          <div class="checkbox">
+                            <label>
+                              <input type="checkbox" name="gerente" value="1" <?php print $varCheckGerente; ?>>
+                              Gerente
+                            </label>
+                          </div>
+                          <div class="checkbox">
+                            <label>
+                              <input type="checkbox" name="rh" value="1" <?php print $varCheckRh; ?>>
+                              Gestor de RH
+                            </label>
+                          </div>
                         </div>
-                    
-                    
+
+
                 </div>
 
                 <div class="box-footer">
                     <button type="submit" id="razao-salvar" class="btn btn-primary btnCadastro pull-right">Salvar</button>
-                </div> 
+                </div>
 
-            </form>            
-            
+            </form>
+
           </div>
           <!-- /.box -->
 
@@ -174,5 +202,5 @@ endif;
       <!-- /.row -->
     </section>
     <!-- /.content -->
-    
+
 @endsection

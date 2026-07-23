@@ -194,6 +194,7 @@ $admin = Session::get('login.ponto.painel.admin');
                             <a href="#modal-correcao-{{ $registro->id }}" data-toggle="modal" onclick="setaDadosModal({{ $registro->id }}, 'entrada', '<?=$varData2?>', '')"><i class="fas fa-exclamation-triangle text-yellow"></i></a>
                           @else
                             <?php
+                            $varCor = '#777777';
                             if ($registro->entrada_status == 0) $varCor = '#005599';
                             if ($registro->entrada_status == 1) $varCor = '#D39745';
                             if ($registro->entrada_status == 2) $varCor = '#67b021';
@@ -210,6 +211,7 @@ $admin = Session::get('login.ponto.painel.admin');
                             <a href="#modal-correcao-{{ $registro->id }}" data-toggle="modal" onclick="setaDadosModal({{ $registro->id }}, 'saida', '<?=$varData2?>', '')"><i class="fas fa-exclamation-triangle text-yellow"></i></a>
                           @else
                             <?php
+                            $varCor = '#777777';
                             if ($registro->saida_status == 0) $varCor = '#005599';
                             if ($registro->saida_status == 1) $varCor = '#D39745';
                             if ($registro->saida_status == 2) $varCor = '#67b021';

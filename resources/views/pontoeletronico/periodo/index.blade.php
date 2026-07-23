@@ -325,7 +325,7 @@
                   </td>
                   <td class="text-center">
                     <a href="/painel/feriado/excluir/{{ $f->id }}"
-                       class="btn btn-xs btn-danger btnExluir"
+                       class="btn btn-acao btn-danger btnExluir"
                        data-url="/painel/feriado/excluir/{{ $f->id }}"
                        data-msg="Remover o feriado {{ $f->data->format('d/m/Y') }} - {{ $f->descricao }}?">
                       <i class="fa fa-trash"></i>
@@ -382,7 +382,7 @@
         </div>
         <div class="modal-footer">
           <a href="#" id="btn-excluir-feriado"
-             class="btn btn-danger pull-left btnExluir"
+             class="btn btn-acao btn-danger pull-left btnExluir"
              style="display:none;"
              data-url=""
              data-msg="">

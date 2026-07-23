@@ -233,7 +233,7 @@ $total_m = str_pad($horas_total_min % 60,          2, '0', STR_PAD_LEFT);
 
 <?php
 $usuario_reg   = $registros[0]->usuario ?? null;
-$local_empresa = $usuario_reg ? ($usuario_reg->local ?? getenv('APP_NAME')) : getenv('APP_NAME');
+$local_empresa = $usuario_reg ? ($usuario_reg->local ?? App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico')) : App\Configuracao::valor('NOME_SISTEMA', 'Ponto Eletrônico');
 $cargo_func    = $usuario_reg ? ($usuario_reg->cargo ?? '') : '';
 ?>
 <div class="employee-section">

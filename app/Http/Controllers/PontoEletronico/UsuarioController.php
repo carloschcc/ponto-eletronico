@@ -16,21 +16,45 @@ class UsuarioController extends PontoEletronicoController {
         $this->middleware('authPainelMiddleware');
     }
 
+    /**
+     * Gestão de colaboradores (listar/cadastrar/editar/excluir/ativar) é de
+     * administradores e do perfil Gestor de RH — gerentes só aprovam ajustes.
+     * Restrições específicas do RH em relação à flag admin são tratadas à
+     * parte, em cada método (ver _souAdminReal / bloqueios abaixo).
+     */
+    private function _bloqueiaSemAcesso()
+    {
+        if(!$this->painelAcessoTotal()):
+            Session::put('status.msg', 'Acesso restrito a administradores e RH.');
+            return redirect(getenv('APP_URL').'/painel/dashboard');
+        endif;
+        return null;
+    }
+
+    private function _souAdminReal()
+    {
+        return Session::get('login.ponto.painel.admin') == 1;
+    }
+
     public function index(){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
         $usuarios = Usuario::orderBy('nome', 'ASC')->get();
         return view('pontoeletronico/usuario/index')->with('usuarios', $usuarios);
     }
 
     public function novo(){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
         return view('pontoeletronico/usuario/data');
     }
 
     public function editar($id){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
         $usuario = Usuario::find($id);
         return view('pontoeletronico/usuario/data')->with('u', $usuario);
     }
 
     public function salvar(){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
 
         if(Request::input('id') AND Request::input('id') > 0):
             $usuario = Usuario::find(Request::input('id'));
@@ -38,8 +62,18 @@ class UsuarioController extends PontoEletronicoController {
             $usuario = new Usuario();
         endif;
 
-        $senha = Request::input('senha');
+        $senha   = Request::input('senha');
+        $resenha = Request::input('resenha');
+
         if(!empty($senha)):
+            if($senha !== $resenha):
+                Session::put('status.msg', 'A senha e a confirmação não conferem.');
+                return redirect(getenv('APP_URL').'/painel/usuarios');
+            endif;
+            if(strlen($senha) < 6):
+                Session::put('status.msg', 'A senha deve ter pelo menos 6 caracteres.');
+                return redirect(getenv('APP_URL').'/painel/usuarios');
+            endif;
             $usuario->senha = Hash::make($senha);
         endif;
 
@@ -51,7 +85,25 @@ class UsuarioController extends PontoEletronicoController {
         $cpf_banco = str_replace(['.', '-'], '', $cpf_banco);
         $cpf       = str_replace(['.', '-'], '', $cpf);
 
-        $ativo = (NULL !== Request::input('ativo')) ? 1 : 0;
+        $ativo   = (NULL !== Request::input('ativo')) ? 1 : 0;
+        $admin   = (NULL !== Request::input('admin')) ? 1 : 0;
+        $gerente = (NULL !== Request::input('gerente')) ? 1 : 0;
+        $rh      = (NULL !== Request::input('rh')) ? 1 : 0;
+
+        // RH (não-admin) não pode atribuir nem remover o acesso de
+        // Administrador de ninguém — só um admin de verdade mexe nessa flag.
+        if(!$this->_souAdminReal() AND $admin != (int) $usuario->admin):
+            Session::put('status.msg', 'Apenas administradores podem alterar o acesso de Administrador de um colaborador.');
+            return redirect(getenv('APP_URL').'/painel/usuarios');
+        endif;
+
+        // Um administrador não pode remover o próprio acesso ao painel —
+        // evita ficar todo mundo trancado pra fora por engano.
+        $logado_id = Session::get('login.ponto.painel.usuario_id');
+        if($usuario->id AND $usuario->id == $logado_id AND $usuario->admin == 1 AND $admin == 0):
+            Session::put('status.msg', 'Você não pode remover seu próprio acesso de administrador.');
+            return redirect(getenv('APP_URL').'/painel/usuarios');
+        endif;
 
         if($email_banco != $email):
             if($this->_verifica_email($email)):
@@ -74,6 +126,9 @@ class UsuarioController extends PontoEletronicoController {
         $usuario->cargo     = Request::input('cargo');
         $usuario->local     = Request::input('local');
         $usuario->ativo     = $ativo;
+        $usuario->admin     = $admin;
+        $usuario->gerente   = $gerente;
+        $usuario->rh        = $rh;
 
         // Upload de foto — mesmo padrão do upload de logo que funciona
         if (isset($_FILES['foto']) && !empty($_FILES['foto']['name']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK):
@@ -82,6 +137,14 @@ class UsuarioController extends PontoEletronicoController {
 
             if (!in_array($ext, ['jpg', 'jpeg', 'png'])):
                 Session::put('status.msg', 'Formato de foto inválido. Use JPG ou PNG.');
+                return redirect(getenv('APP_URL').'/painel/usuarios');
+            endif;
+
+            // Confere o conteúdo real do arquivo, não só a extensão do nome —
+            // evita que um arquivo disfarçado (ex: .php renomeado pra .jpg) seja aceito.
+            $infoImagem = @getimagesize($arquivo['tmp_name']);
+            if ($infoImagem === false || !in_array($infoImagem['mime'], ['image/jpeg', 'image/png'])):
+                Session::put('status.msg', 'Arquivo inválido: o conteúdo não corresponde a uma imagem JPG/PNG.');
                 return redirect(getenv('APP_URL').'/painel/usuarios');
             endif;
 
@@ -138,8 +201,8 @@ class UsuarioController extends PontoEletronicoController {
             return redirect(getenv('APP_URL').'/painel/minha-senha');
         endif;
 
-        if(strlen($nova_senha) < 4):
-            Session::put('status.msg', 'A nova senha deve ter pelo menos 4 caracteres.');
+        if(strlen($nova_senha) < 6):
+            Session::put('status.msg', 'A nova senha deve ter pelo menos 6 caracteres.');
             return redirect(getenv('APP_URL').'/painel/minha-senha');
         endif;
 
@@ -151,7 +214,15 @@ class UsuarioController extends PontoEletronicoController {
     }
 
     public function desabilitar($id){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
+
         $usuario = Usuario::find($id);
+
+        if($usuario->admin == 1 AND !$this->_souAdminReal()):
+            Session::put('status.msg', 'Você não pode desabilitar um usuário administrador.');
+            return redirect(getenv('APP_URL').'/painel/usuarios');
+        endif;
+
         $usuario->ativo = 0;
         $usuario->save();
         Session::put('status.msg', 'Usuário desabilitado com sucesso!');
@@ -159,6 +230,7 @@ class UsuarioController extends PontoEletronicoController {
     }
 
     public function habilitar($id){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
         $usuario = Usuario::find($id);
         $usuario->ativo = 1;
         $usuario->save();
@@ -167,7 +239,15 @@ class UsuarioController extends PontoEletronicoController {
     }
 
     public function excluir($id){
+        if($redir = $this->_bloqueiaSemAcesso()) return $redir;
+
         $usuario = Usuario::find($id);
+
+        if($usuario AND $usuario->admin == 1 AND !$this->_souAdminReal()):
+            Session::put('status.msg', 'Você não pode excluir um usuário administrador.');
+            return redirect(getenv('APP_URL').'/painel/usuarios');
+        endif;
+
         if($usuario):
             if($usuario->foto):
                 $caminho = public_path('img/foto') . DIRECTORY_SEPARATOR . $usuario->foto;

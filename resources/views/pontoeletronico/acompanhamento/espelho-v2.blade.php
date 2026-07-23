@@ -408,20 +408,8 @@
       $cursor->modify('+1 day');
   }
 
-  // Observações: ajustes aprovados do período
-  $obs_parts = [];
-  foreach ($registros as $r) {
-      $ajustes_r = App\PontoAjuste::with('pontoRazao')
-          ->where('ponto_id', $r->id)
-          ->where('status', 1)
-          ->get();
-      foreach ($ajustes_r as $aj) {
-          if ($aj->pontoRazao) {
-              $obs_parts[] = date('d/m', strtotime($r->data)) . ' - ' . $aj->pontoRazao->descricao;
-          }
-      }
-  }
-  $obs_texto = implode(' · ', $obs_parts);
+  // Observações: em branco — espaço de uso livre (caneta) por quem recebe a folha impressa.
+  $obs_texto = '';
 @endphp
 
 <div class="folha-ponto">
@@ -435,9 +423,6 @@
       @else
         <div class="brasao">{{ $brasao_letra }}</div>
       @endif
-      <div class="header-titles">
-        <span class="estado">{{ strtoupper($app_name) }}</span>
-      </div>
     </div>
     <div class="header-right">
       <div class="titulo-folha">FOLHA DE FREQUÊNCIA</div>

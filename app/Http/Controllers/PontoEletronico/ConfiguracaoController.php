@@ -14,8 +14,7 @@ class ConfiguracaoController extends PontoEletronicoController {
 
     public function index()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1) {
+        if (!$this->painelEhAdmin()) {
             return redirect(getenv('APP_URL').'/painel/dashboard');
         }
 
@@ -29,19 +28,19 @@ class ConfiguracaoController extends PontoEletronicoController {
         $localizacao_longitude = Configuracao::valor('PONTO_LOCALIZACAO_LONGITUDE', '');
         $localizacao_raio = Configuracao::valor('PONTO_LOCALIZACAO_RAIO', '50');
         $ips_permitidos = Configuracao::valor('PONTO_IPS_PERMITIDOS', '');
+        $nome_sistema = Configuracao::valor('NOME_SISTEMA', 'Ponto EletrÃ´nico');
 
         return view('pontoeletronico/configuracao/index', compact(
             'logo_url', 'logo_espelho_url', 'logo_espelho_existe',
             'timezone_atual', 'hora_atual', 'configuracao_localizacao',
             'localizacao_latitude', 'localizacao_longitude', 'localizacao_raio',
-            'ips_permitidos'
+            'ips_permitidos', 'nome_sistema'
         ));
     }
 
     public function salvarLocalizacao()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1) {
+        if (!$this->painelEhAdmin()) {
             return redirect(getenv('APP_URL').'/painel/dashboard');
         }
 
@@ -50,25 +49,70 @@ class ConfiguracaoController extends PontoEletronicoController {
         $longitude = trim(Request::input('longitude', ''));
         $raio = trim(Request::input('raio', '50'));
 
-        $this->persistirValorEnv('PONTO_LOCALIZACAO_HABILITAR', $habilitar);
-        $this->persistirValorEnv('PONTO_LOCALIZACAO_LATITUDE', $latitude);
-        $this->persistirValorEnv('PONTO_LOCALIZACAO_LONGITUDE', $longitude);
-        $this->persistirValorEnv('PONTO_LOCALIZACAO_RAIO', $raio);
-        $this->persistirValorEnv('PONTO_IPS_PERMITIDOS', trim(Request::input('ips_permitidos', '')));
+        $sucesso = true;
+        $sucesso = $this->persistirValorEnv('PONTO_LOCALIZACAO_HABILITAR', $habilitar) && $sucesso;
+        $sucesso = $this->persistirValorEnv('PONTO_LOCALIZACAO_LATITUDE', $latitude) && $sucesso;
+        $sucesso = $this->persistirValorEnv('PONTO_LOCALIZACAO_LONGITUDE', $longitude) && $sucesso;
+        $sucesso = $this->persistirValorEnv('PONTO_LOCALIZACAO_RAIO', $raio) && $sucesso;
+        $sucesso = $this->persistirValorEnv('PONTO_IPS_PERMITIDOS', trim(Request::input('ips_permitidos', ''))) && $sucesso;
 
-        Session::put('status.msg', 'Configuração de localização e IPs permitidos atualizada com sucesso!');
+        if (!$sucesso) {
+            Session::put('status.msg', 'Falha ao gravar a configuraÃ§Ã£o em disco. Verifique as permissÃµes de escrita da pasta storage/app.');
+            return redirect(getenv('APP_URL').'/painel/configuracao');
+        }
+
+        Session::put('status.msg', 'ConfiguraÃ§Ã£o de localizaÃ§Ã£o e IPs permitidos atualizada com sucesso!');
+        return redirect(getenv('APP_URL').'/painel/configuracao');
+    }
+
+    public function salvarNome()
+    {
+        if (!$this->painelEhAdmin()) {
+            return redirect(getenv('APP_URL').'/painel/dashboard');
+        }
+
+        $nome = trim(Request::input('nome_sistema', ''));
+
+        if ($nome === '') {
+            Session::put('status.msg', 'Informe um nome para o sistema.');
+            return redirect(getenv('APP_URL').'/painel/configuracao');
+        }
+
+        $this->persistirValorEnv('NOME_SISTEMA', $nome);
+
+        Session::put('status.msg', 'Nome do sistema atualizado com sucesso!');
         return redirect(getenv('APP_URL').'/painel/configuracao');
     }
 
     private function persistirValorEnv($chave, $valor)
     {
-        \App\Configuracao::salvar($chave, $valor);
+        return \App\Configuracao::salvar($chave, $valor);
+    }
+
+    /**
+     * Confere se o arquivo enviado Ã©, de fato, uma imagem rasterizada vÃ¡lida
+     * (JPG/PNG/GIF) â€” nÃ£o sÃ³ confia na extensÃ£o do nome do arquivo.
+     */
+    private function _validarImagem($arquivo)
+    {
+        $ext = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
+
+        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif'])) {
+            return 'Formato invÃ¡lido. Use PNG, JPG ou GIF.';
+        }
+
+        $infoImagem = @getimagesize($arquivo['tmp_name']);
+        $tiposValidos = ['image/jpeg', 'image/png', 'image/gif'];
+        if ($infoImagem === false || !in_array($infoImagem['mime'], $tiposValidos)) {
+            return 'Arquivo invÃ¡lido: o conteÃºdo nÃ£o corresponde a uma imagem vÃ¡lida.';
+        }
+
+        return null;
     }
 
     public function salvarLogo()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1) {
+        if (!$this->painelEhAdmin()) {
             return redirect(getenv('APP_URL').'/painel/dashboard');
         }
 
@@ -78,17 +122,16 @@ class ConfiguracaoController extends PontoEletronicoController {
         }
 
         $arquivo = $_FILES['logo'];
-        $ext     = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
-
-        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) {
-            Session::put('status.msg', 'Formato inválido. Use PNG, JPG, GIF ou SVG.');
+        $erro = $this->_validarImagem($arquivo);
+        if ($erro) {
+            Session::put('status.msg', $erro);
             return redirect(getenv('APP_URL').'/painel/configuracao');
         }
 
         $destino = public_path('img/ilab4_logo_pontoeletronico.png');
 
         if (!move_uploaded_file($arquivo['tmp_name'], $destino)) {
-            Session::put('status.msg', 'Falha ao salvar o arquivo. Verifique as permissões da pasta public/img.');
+            Session::put('status.msg', 'Falha ao salvar o arquivo. Verifique as permissÃµes da pasta public/img.');
             return redirect(getenv('APP_URL').'/painel/configuracao');
         }
 
@@ -98,8 +141,7 @@ class ConfiguracaoController extends PontoEletronicoController {
 
     public function salvarLogoEspelho()
     {
-        $admin = Session::get('login.ponto.painel.admin');
-        if ($admin != 1) {
+        if (!$this->painelEhAdmin()) {
             return redirect(getenv('APP_URL').'/painel/dashboard');
         }
 
@@ -109,17 +151,16 @@ class ConfiguracaoController extends PontoEletronicoController {
         }
 
         $arquivo = $_FILES['logo_espelho'];
-        $ext     = strtolower(pathinfo($arquivo['name'], PATHINFO_EXTENSION));
-
-        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'svg'])) {
-            Session::put('status.msg', 'Formato inválido. Use PNG, JPG, GIF ou SVG.');
+        $erro = $this->_validarImagem($arquivo);
+        if ($erro) {
+            Session::put('status.msg', $erro);
             return redirect(getenv('APP_URL').'/painel/configuracao');
         }
 
         $destino = public_path('img/logo_espelho_v2.png');
 
         if (!move_uploaded_file($arquivo['tmp_name'], $destino)) {
-            Session::put('status.msg', 'Falha ao salvar. Verifique as permissões da pasta public/img.');
+            Session::put('status.msg', 'Falha ao salvar. Verifique as permissÃµes da pasta public/img.');
             return redirect(getenv('APP_URL').'/painel/configuracao');
         }
 
@@ -128,3 +169,4 @@ class ConfiguracaoController extends PontoEletronicoController {
     }
 
 }
+

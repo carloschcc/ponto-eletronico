@@ -17,13 +17,19 @@ class AutorizacaoPainelMiddleware
      */
     public function handle($request, Closure $next)
     {
-        
+
         $usuario_logado = Session::get('login.ponto.painel.usuario_id');
+        $url_base = getenv('APP_URL').'/painel';
+
         if(empty($usuario_logado)){
-            $url_base = getenv('APP_URL').'/painel';
             return redirect($url_base);
         }
 
+        // O painel aceita qualquer colaborador autenticado — é onde ele
+        // solicita ajuste da própria batida. As telas de gestão (Colaboradores,
+        // Períodos, Configurações, Acompanhamento, aprovação de ajustes) são
+        // restritas a admin/gerente/RH em cada controller (painelAcessoTotal()/
+        // painelPodeCertificar()), não aqui.
         return $next($request);
     }
 }

@@ -25,7 +25,10 @@ class Configuracao
     {
         $config = self::carregarConfig();
         $config[$chave] = (string) $valor;
-        self::gravarConfig($config);
+
+        if (!self::gravarConfig($config)) {
+            return false;
+        }
 
         putenv($chave . '=' . $valor);
         $_ENV[$chave] = $valor;
@@ -55,12 +58,13 @@ class Configuracao
         $arquivo = self::obterCaminhoArquivo();
         $diretorio = dirname($arquivo);
 
-        if (!is_dir($diretorio)) {
-            @mkdir($diretorio, 0755, true);
+        if (!is_dir($diretorio) && !@mkdir($diretorio, 0755, true) && !is_dir($diretorio)) {
+            return false;
         }
 
         $conteudo = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-        @file_put_contents($arquivo, $conteudo);
+
+        return @file_put_contents($arquivo, $conteudo) !== false;
     }
 
     private static function obterCaminhoArquivo()
